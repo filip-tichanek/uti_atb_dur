@@ -1,0 +1,3500 @@
+---
+title: "Short versus prolonged antibiotic therapy for complicated urinary tract infection in kidney transplant recipients: a target trial emulation"
+subtitle: "Statistical report"
+format: 
+  html:  
+    embed-resources: true
+    keep-md: false
+    toc: true
+    toc-expand: 3
+    toc-depth: 4
+    toc-location: left
+    number-sections: true
+    number-depth: 4
+    code-fold: true
+    code-tools: true
+    code-summary: "Open code"
+    grid: 
+      body-width: 1000px
+      sidebar-width: 600px
+      margin-width: 100px
+editor: source
+theme: darkly
+highlight-style: github-dark
+fontsize: 12 px
+code-block-bg: "#2D2D31"
+bibliography: ../references.bib
+fontcolor: "#D1D1D1"
+monobackgroundcolor: "#3B3B3B"
+---
+
+------------------------------------------------------------------------
+
+```{r, echo=FALSE}
+path <- '~/1_ticf_sec/722_PETV_emul_trial_analysis'
+
+knitr::opts_chunk$set(collapse = TRUE)
+knitr::opts_knit$set(root.dir = path)
+```
+
+Set the report appearance.
+
+```{css, echo=FALSE}
+code.sourceCode {
+  font-size: 0.86em;
+  border: 1px solid #ffffff; 
+  padding: 9px; 
+}
+
+code{
+    color: #EEE8AA; 
+    background: #96464D
+}
+
+.equation {
+  text-align: center;
+  display: block;
+  margin: auto;
+}
+
+body {
+  text-align: justify;
+}
+```
+
+
+{{< include ../README.md >}}
+
+# Initiation
+
+```{r}
+
+setwd(path)
+source("r/initiation.R")
+
+palette_study <- c("#A65F35", "#AF607C", "#477DA0")
+outcomes <- c("recurence_till_1M", "recurence_till_90D")
+outcome_labels <- c(
+  recurence_till_1M = "Within 30 days",
+  recurence_till_90D = "Within 90 days"
+)
+```
+
+## Functions
+
+```{r}
+
+save_plot <- function(plot_obj, plot_name, width, height) {
+  assign(plot_name, plot_obj, envir = .GlobalEnv)
+  figure_path <- file.path("gitignore/figures", paste0(plot_name, ".pdf"))
+  if (!file.exists(figure_path)) {
+    ggsave(
+      figure_path,
+      plot = plot_obj,
+      device = cairo_pdf,
+      width = width,
+      height = height,
+      units = "in"
+    )
+  }
+  plot_obj
+}
+
+profile_or <- function(model) {
+  terms <- setdiff(names(coef(model)), "(Intercept)")
+  limits <- confint(model, parm = terms, level = 0.95)
+  limits <- matrix(limits, ncol = 2)
+  data.frame(
+    term = terms,
+    OR = exp(unname(coef(model)[terms])),
+    lower = exp(limits[, 1]),
+    upper = exp(limits[, 2])
+  )
+}
+
+my_labels_dict <- c(
+  "(Intercept)" = "(Intercept)",
+  "log2_ATB_duration_overall" = "ATB duration (log2)",
+  "log2_ATB_sensitivity_duration" = "Sensitivity ATB duration (log2)",
+  "log2_ATB_IV_duration" = "IV ATB duration (log2)",
+  "log2_ATB_peroral_duration" = "Peroral ATB duration (log2)",
+  "ATB_peroral_binTRUE" = "Peroral ATB (0/1)",
+  "sex_female" = "Sex female",
+  "SexM" = "Sex male", 
+  "age_by30y" = "Age (per 30 years)",
+  "log2_TX_to_infection" = "Time from Tx to infection (log2)",
+  "log2(TX_to_infection_months + 1)" = "Time from Tx to infection (log2)",
+  "urology_acute" = "Acute urological complications",
+  "diabetes_severe" = "Complicated diabetes mellitus",
+  "diabetes" = "Diabetes mellitus",
+  "mra_positive" = "Multidrug resistant agens",
+  "bad_response_early_worsening" = "Unfavorable clinical response",
+  "favourable_early_response" = "Favorable early response",
+  "hemoculture_positive" = "Hemoculture positivity",
+  "profylaxis" = "Prophylaxis",
+  "severe_aki" = "Stage 2/3 AKI",
+  "I(years_from2019/10)" = "Calendar time (10 years)",
+  "stent_in_situ" = "JJ stent in situ",
+  "bph_pca_subvesical_obstruction" = "BPH/Ca Prostate/Subvesical obs.",
+  "urethral_stricture" = "Urethral stricture",
+  "renofunctional_obstruction" = "RF obstruction",
+  "treatment_under14D" = "Sensitivity ATB duration <14 days",
+  "ATB_sensitivity_per7" = "Sensitivity ATB duration (per 7 days)",
+  "ATB_overall_per7" = "Overall ATB duration (per 7 days)",
+  "CRP_entry_by100" = "Entry CRP (per 100)",
+  "log2(CRP_entry)" = "Entry CRP (log2)",
+  "CRP_max_by100" = "Maximum CRP (per 100)",
+  "years_from2019" = "Calendar time (years)",
+  "past_urol_instrumentation" = "Past urological instrumentation",
+  "calendar_time_10y" = "Calendar time (10 years)",
+  "calendar_period2017-2021" = "Calendar period 2017 to 2021",
+  "calendar_period>=2022" = "Calendar period 2022 onward",
+  "immunosuppression_regimenother triple" = "Other triple IS",
+  "immunosuppression_regimendual or single" = "Dual or single IS",
+  "depletion_induction_or_rejection_treatment_6M" =
+    "Depletion or rejection treatment in prior 6 months",
+  "fever_before_planned_ATB_stop" = "Fever during days 1 to 13",
+  "clinical_worsening_before_planned_ATB_stop" =
+    "Clinical worsening during days 1 to 13",
+  "urine_findings_worsening_before_planned_ATB_stop" =
+    "Urine findings worsening during days 1 to 13",
+  "ATB_extension_CRP_dynamics" = "CRP dynamics during days 1 to 13",
+  "ATB_extension_other_reason" = "Other reason during days 1 to 13",
+  "ATB_extension_urologic_procedure" =
+    "Urological procedure during days 1 to 13"
+)
+
+plot_my_model <- function(model) {
+  model_terms <- names(coef(model))
+  plot_terms <- model_terms[model_terms != "(Intercept)"]
+  
+  mapped_labels <- unname(ifelse(
+    is.na(my_labels_dict[plot_terms]), 
+    plot_terms, 
+    my_labels_dict[plot_terms]
+  ))
+  
+  p <- sjPlot::plot_model(
+    model, 
+    type = "est", 
+    axis.labels = rev(mapped_labels)
+  ) + 
+    geom_hline(yintercept = 1, linetype = "dashed", color = "black")
+  
+  return(p)
+}
+```
+
+## Analysis data
+
+```{r}
+
+data_2017 <- data_analysis |>
+  dplyr::filter(calendar_year >= 2017) |>
+  data.frame()
+```
+
+
+# Descriptive analyses
+
+## Calendar-year recurrence risk
+
+```{r}
+year_risk <- data_analysis |>
+  dplyr::select(
+    calendar_year,
+    dplyr::all_of(outcomes)
+  ) |>
+  tidyr::pivot_longer(
+    cols = dplyr::all_of(outcomes),
+    names_to = "outcome"
+  ) |>
+  dplyr::filter(
+    !is.na(calendar_year),
+    !is.na(value)
+  ) |>
+  dplyr::group_by(
+    calendar_year,
+    outcome
+  ) |>
+  dplyr::summarise(
+    n = dplyr::n(),
+    events = sum(value),
+    .groups = "drop"
+  ) |>
+  dplyr::mutate(
+    risk = events / n,
+    z = qnorm(0.975),
+    center = (risk + z^2 / (2 * n)) / (1 + z^2 / n),
+    half_width = z * sqrt(risk * (1 - risk) / n +
+    z^2 / (4 * n^2)) / (1 + z^2 / n),
+    lower = center - half_width,
+    upper = center + half_width,
+    window = factor(outcome_labels[outcome], levels = outcome_labels)
+  ) |>
+  dplyr::select(
+    calendar_year,
+    window,
+    n,
+    events,
+    risk,
+    lower,
+    upper
+  ) |>
+  data.frame()
+kableExtra::kable(
+  year_risk,
+  digits = 3,
+  caption = "Observed recurrence after therapy completion by calendar year. window identifies 30-day or 90-day follow-up; n is the number of patients and events the number with recurrence. risk is events divided by n; lower and upper are 95% Wilson confidence limits"
+)
+```
+
+Plot the results
+
+```{r, fig.height=5, fig.width=10}
+#| fig-cap: "Figure 1. Observed recurrence within 30 and 90 days after therapy completion by calendar year of sensitivity ATB treatment initiation. Black points show observed proportions, grey vertical bars show 95% Wilson confidence intervals, and connecting lines guide the eye"
+
+year_breaks <- seq(
+  floor(min(year_risk$calendar_year) / 2) * 2,
+  ceiling(max(year_risk$calendar_year) / 2) * 2,
+  by = 2
+)
+myplot <- ggplot(year_risk, aes(calendar_year, risk)) +
+  geom_line() +
+  geom_linerange(aes(ymin = lower, ymax = upper), colour = "grey50") +
+  geom_point() +
+  facet_wrap(~ window) +
+  scale_x_continuous(breaks = year_breaks, minor_breaks = NULL) +
+  scale_y_continuous(labels = scales::label_percent()) +
+  labs(
+    x = "Calendar year at sensitivity ATB treatment initiation",
+    y = "Recurrence risk"
+  ) +
+  theme(
+    panel.grid.major.x = element_line(colour = "white"),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+plotac <- "fig_x01"
+myplot <- save_plot(myplot, plotac, width = 10, height = 5)
+myplot
+```
+
+## Cohort description
+
+Compare patient characteristics between the two treatment groups. Continuous variables are shown as median (interquartile range), and categorical variables as counts and percentages. Missing values are shown separately.
+
+```{r}
+cohort_table <- data_analysis |>
+  dplyr::select(
+    treatment_group,
+    age,
+    sex_female,
+    log2_TX_to_infection,
+    urology_acute,
+    stent_in_situ,
+    bph_pca_subvesical_obstruction,
+    urethral_stricture,
+    renofunctional_obstruction,
+    diabetes_severe,
+    diabetes,
+    mra_positive,
+    bad_response_early_worsening,
+    hemoculture_positive,
+    fever_signs,
+    dysuria_UroInfSigns,
+    profylaxis,
+    severe_aki,
+    CRP_entry,
+    CRP_max,
+    immunosuppression_regimen,
+    depletion_induction_or_rejection_treatment_6M,
+    calendar_period,
+    ATB_sensitivity_duration,
+    recurence_till_1M,
+    recurence_till_90D
+  ) |>
+  data.frame() |>
+  gtsummary::tbl_summary(
+    by = treatment_group,
+    label = list(
+      bph_pca_subvesical_obstruction ~
+        "BPH/prostate cancer/subvesical obstruction",
+      urethral_stricture ~ "Urethral stricture",
+      renofunctional_obstruction ~ "Obstruction",
+      hemoculture_positive ~ "Positive blood culture",
+      fever_signs ~ "Fever, chills or rigors",
+      dysuria_UroInfSigns ~ "Dysuria or other lower UTI symptoms",
+      recurence_till_1M ~ "Recurrence within 30 days",
+      recurence_till_90D ~ "Recurrence within 90 days"
+    ),
+    type = list(
+      c(
+        hemoculture_positive,
+        fever_signs,
+        dysuria_UroInfSigns,
+        recurence_till_1M,
+        recurence_till_90D
+      ) ~ "dichotomous"
+    ),
+    value = list(
+      c(
+        hemoculture_positive,
+        fever_signs,
+        dysuria_UroInfSigns,
+        recurence_till_1M,
+        recurence_till_90D
+      ) ~ 1
+    ),
+    statistic = list(
+      gtsummary::all_continuous() ~ "{median} ({p25}, {p75})",
+      gtsummary::all_categorical() ~ "{n} ({p}%)"
+    ),
+    missing = "ifany"
+  ) |>
+  gtsummary::bold_labels() |>
+  gtsummary::modify_caption(
+    "Patient characteristics by sensitivity ATB duration. Continuous variables are shown as median (interquartile range), and categorical variables as counts and within-group percentages among patients with available values. Binary variables show the number and percentage coded 1, indicating presence. Recurrence is measured within 30 and 90 days after therapy completion"
+  )
+
+cohort_table
+```
+
+## Correlations among continuous measures
+
+Look for closely related measures before interpreting models that include them together. Spearman correlations describe rank relationships; the lower panels show the original observations.
+
+```{r, fig.height=9, fig.width=9.5}
+#| fig-cap: "Figure 2. Pairwise Spearman correlations among age, admission and maximum CRP, time since transplantation, and sensitivity ATB, overall and intravenous antibiotic duration. Upper cells show Spearman rho; lower cells show individual observations. Variables are ordered by UPGMA hierarchical clustering using distance 1 minus rho and average linkage. Pairwise complete records are used; axes in lower cells use each variable's observed range"
+
+correlation_data <- data_analysis |>
+  dplyr::select(
+    age,
+    CRP_entry,
+    CRP_max,
+    TX_to_infection_months,
+    ATB_sensitivity_duration,
+    ATB_duration_overall,
+    ATB_IV_duration
+  ) |>
+  data.frame()
+correlation_labels <- c(
+  "Age [years]", "Admission CRP", "Maximum CRP",
+  "Time since TX [months]", "Sensitivity ATB [days]",
+  "Overall ATB [days]", "Intravenous ATB [days]"
+)
+rho_matrix <- cor(
+  correlation_data,
+  method = "spearman",
+  use = "pairwise.complete.obs"
+)
+correlation_upgma <- hclust(as.dist(1 - rho_matrix), method = "average")
+correlation_order <- correlation_upgma$order
+display_position <- integer(length(correlation_order))
+display_position[correlation_order] <- seq_along(correlation_order)
+rho_display <- rho_matrix
+rho_display[!outer(display_position, display_position, "<")] <- NA_real_
+myplot <- ComplexHeatmap::Heatmap(
+  rho_display,
+  name = "Spearman rho",
+  col = circlize::colorRamp2(
+    c(-1, 0, 1), c("#3B4CC0", "white", "#B40426")
+  ),
+  cluster_rows = FALSE,
+  row_order = correlation_order,
+  cluster_columns = as.dendrogram(correlation_upgma),
+  column_dend_reorder = FALSE,
+  show_row_dend = FALSE,
+  row_labels = correlation_labels,
+  column_labels = correlation_labels,
+  column_names_rot = 55,
+  column_dend_height = grid::unit(35, "mm"),
+  na_col = "white",
+  rect_gp = grid::gpar(col = "grey85"),
+  cell_fun = function(j, i, x, y, width, height, fill) {
+    if (display_position[i] < display_position[j]) {
+      grid::grid.text(sprintf("%.2f", rho_matrix[i, j]), x, y)
+    }
+    if (display_position[i] > display_position[j]) {
+      pairs <- correlation_data[, c(j, i)]
+      pairs <- pairs[complete.cases(pairs), , drop = FALSE]
+      grid::pushViewport(grid::viewport(
+        x = x, y = y, width = width, height = height,
+        xscale = range(pairs[[1]]), yscale = range(pairs[[2]]),
+        clip = "on"
+      ))
+      grid::grid.rect(gp = grid::gpar(fill = "white", col = "grey85"))
+      grid::grid.points(
+        pairs[[1]], pairs[[2]], default.units = "native",
+        pch = 16, size = grid::unit(1, "mm"),
+        gp = grid::gpar(col = grDevices::rgb(0, 0, 0, alpha = 0.2))
+      )
+      grid::popViewport()
+    }
+  }
+)
+plotac <- "fig_x03"
+assign(plotac, myplot)
+figure_path <- file.path("gitignore/figures", paste0(plotac, ".pdf"))
+if (!file.exists(figure_path)) {
+  cairo_pdf(figure_path, width = 9.5, height = 9)
+  ComplexHeatmap::draw(get(plotac))
+  dev.off()
+}
+grid::grid.newpage()
+ComplexHeatmap::draw(get(plotac))
+```
+
+
+# Unadjusted regression
+
+Fit each predictor separately
+
+```{r}
+unadjusted_table <- function(outcome, predictors, data) {
+  purrr::map_dfr(predictors, function(predictor) {
+    model <- glm(
+      reformulate(predictor, response = outcome),
+      data = data,
+      family = binomial(link = "logit")
+    )
+    profile_or(model) |>
+      dplyr::mutate(
+        predictor = predictor,
+        n = nobs(model),
+        .before = 1
+      )
+  }) |>
+    data.frame()
+}
+
+unadjusted_predictors <- c(
+  "ATB_sensitivity_per7", "log2_ATB_sensitivity_duration",
+  "ATB_overall_per7", "log2_ATB_duration_overall",
+  "treatment_under14D", "sex_female", "age_by30y",
+  "log2_TX_to_infection", "urology_acute", "diabetes_severe",
+  "mra_positive", "bad_response_early_worsening", "hemoculture_positive",
+  "profylaxis", "severe_aki", "log2(CRP_entry)", "log2(CRP_max)",
+  "I(years_from2019 / 10)", "immunosuppression_regimen",
+  "depletion_induction_or_rejection_treatment_6M", "any_problem_D1_13"
+)
+```
+
+## Recurrence within 30 days
+
+Show the unadjusted associations.
+
+```{r}
+unadjusted_30D <- unadjusted_table(
+  "recurence_till_1M",
+  unadjusted_predictors,
+  data_analysis
+)
+kableExtra::kable(
+  unadjusted_30D,
+  digits = 3,
+  caption = "Unadjusted associations with recurrence within 30 days after therapy completion. Each predictor was fitted separately using logistic regression. OR (odds ratio) states how many times the odds of recurrence change when a numerical predictor increases by one unit or a binary predictor changes from 0 to 1. For _per7 variables, the increase is seven treatment days; for log2-transformed variables, it is a doubling of the original value. For other categorical predictors, OR describes the change from the reference category to the category shown in the row. n is the number of patients analysed; lower and upper are the 95% profile-likelihood confidence limits"
+)
+```
+
+## Recurrence within 90 days
+
+Show the unadjusted associations.
+
+```{r}
+unadjusted_90D <- unadjusted_table(
+  "recurence_till_90D",
+  unadjusted_predictors,
+  data_analysis
+)
+kableExtra::kable(
+  unadjusted_90D,
+  digits = 3,
+  caption = "Unadjusted associations with recurrence within 90 days after therapy completion. Each predictor was fitted separately using logistic regression. OR (odds ratio) states how many times the odds of recurrence change when a numerical predictor increases by one unit or a binary predictor changes from 0 to 1. For _per7 variables, the increase is seven treatment days; for log2-transformed variables, it is a doubling of the original value. For other categorical predictors, OR describes the change from the reference category to the category shown in the row. n is the number of patients analysed; lower and upper are the 95% profile-likelihood confidence limits"
+)
+```
+
+# Multivariable regression
+
+## 30-day recurrence. Sensitivity ATB duration per additional seven days
+
+Fit the model
+
+```{r}
+m_30D_effective_7d <- glm(
+  recurence_till_1M ~
+    ATB_sensitivity_per7 +
+    sex_female +
+    age_by30y +
+    log2_TX_to_infection +
+    urology_acute +
+    diabetes_severe +
+    mra_positive +
+    bad_response_early_worsening +
+    hemoculture_positive +
+    profylaxis +
+    severe_aki +
+    I(years_from2019 / 10),
+  data = data_analysis,
+  family = binomial(link = "logit")
+)
+summary(m_30D_effective_7d)
+car::vif(m_30D_effective_7d)
+
+sjPlot::tab_model(
+  m_30D_effective_7d,
+  show.ci = 0.95,
+  show.p = TRUE,
+  show.se = FALSE,
+  digits = 3,
+  title = "30-day recurrence. Sensitivity ATB duration per additional seven days: adjusted odds ratios"
+)
+
+```
+
+Plot the model
+
+```{r, fig.height=8, fig.width=9}
+#| fig-cap: "Figure 3. 30-day recurrence. Sensitivity ATB duration per additional seven days. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+
+myplot <- plot_my_model(m_30D_effective_7d)
+plotac <- "fig_x04"
+myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot
+```
+
+## 90-day recurrence. Sensitivity ATB duration per additional seven days
+
+Fit the model
+
+```{r}
+m_90D_effective_7d <- glm(
+  recurence_till_90D ~
+    ATB_sensitivity_per7 +
+    sex_female +
+    age_by30y +
+    log2_TX_to_infection +
+    urology_acute +
+    diabetes_severe +
+    mra_positive +
+    bad_response_early_worsening +
+    hemoculture_positive +
+    profylaxis +
+    severe_aki +
+    I(years_from2019 / 10),
+  data = data_analysis,
+  family = binomial(link = "logit")
+)
+summary(m_90D_effective_7d)
+car::vif(m_90D_effective_7d)
+
+sjPlot::tab_model(
+  m_90D_effective_7d,
+  show.ci = 0.95,
+  show.p = TRUE,
+  show.se = FALSE,
+  digits = 3,
+  title = "90-day recurrence. Sensitivity ATB duration per additional seven days: adjusted odds ratios"
+)
+
+```
+
+Plot the model
+
+```{r, fig.height=8, fig.width=9}
+#| fig-cap: "Figure 4. 90-day recurrence. Sensitivity ATB duration per additional seven days. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+
+myplot <- plot_my_model(m_90D_effective_7d)
+plotac <- "fig_x05"
+myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot
+```
+
+## 30-day recurrence. Sensitivity ATB duration per doubling
+
+Fit the model
+
+```{r}
+m_30D_effective_log2 <- glm(
+  recurence_till_1M ~
+    log2_ATB_sensitivity_duration +
+    sex_female +
+    age_by30y +
+    log2_TX_to_infection +
+    urology_acute +
+    diabetes_severe +
+    mra_positive +
+    bad_response_early_worsening +
+    hemoculture_positive +
+    profylaxis +
+    severe_aki +
+    I(years_from2019 / 10),
+  data = data_analysis,
+  family = binomial(link = "logit")
+)
+summary(m_30D_effective_log2)
+car::vif(m_30D_effective_log2)
+
+sjPlot::tab_model(
+  m_30D_effective_log2,
+  show.ci = 0.95,
+  show.p = TRUE,
+  show.se = FALSE,
+  digits = 3,
+  title = "30-day recurrence. Sensitivity ATB duration per doubling: adjusted odds ratios"
+)
+
+```
+
+Plot the model
+
+```{r, fig.height=8, fig.width=9}
+#| fig-cap: "Figure 5. 30-day recurrence. Sensitivity ATB duration per doubling. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+
+myplot <- plot_my_model(m_30D_effective_log2)
+plotac <- "fig_x06"
+myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot
+```
+
+## 90-day recurrence. Sensitivity ATB duration per doubling
+
+Fit the model
+
+```{r}
+m_90D_effective_log2 <- glm(
+  recurence_till_90D ~
+    log2_ATB_sensitivity_duration +
+    sex_female +
+    age_by30y +
+    log2_TX_to_infection +
+    urology_acute +
+    diabetes_severe +
+    mra_positive +
+    bad_response_early_worsening +
+    hemoculture_positive +
+    profylaxis +
+    severe_aki +
+    I(years_from2019 / 10),
+  data = data_analysis,
+  family = binomial(link = "logit")
+)
+summary(m_90D_effective_log2)
+car::vif(m_90D_effective_log2)
+
+sjPlot::tab_model(
+  m_90D_effective_log2,
+  show.ci = 0.95,
+  show.p = TRUE,
+  show.se = FALSE,
+  digits = 3,
+  title = "90-day recurrence. Sensitivity ATB duration per doubling: adjusted odds ratios"
+)
+
+```
+Plot the model
+
+```{r, fig.height=8, fig.width=9}
+#| fig-cap: "Figure 6. 90-day recurrence. Sensitivity ATB duration per doubling. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+
+myplot <- plot_my_model(m_90D_effective_log2)
+plotac <- "fig_x07"
+myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot
+```
+
+## 30-day recurrence. Sensitivity ATB duration: <=13 versus >13 days
+
+Fit the model
+
+```{r}
+m_30D_effective_short <- glm(
+  recurence_till_1M ~
+    treatment_under14D +
+    sex_female +
+    age_by30y +
+    log2_TX_to_infection +
+    urology_acute +
+    diabetes_severe +
+    mra_positive +
+    bad_response_early_worsening +
+    hemoculture_positive +
+    profylaxis +
+    severe_aki +
+    I(years_from2019 / 10),
+  data = data_analysis,
+  family = binomial(link = "logit")
+)
+summary(m_30D_effective_short)
+car::vif(m_30D_effective_short)
+
+sjPlot::tab_model(
+  m_30D_effective_short,
+  show.ci = 0.95,
+  show.p = TRUE,
+  show.se = FALSE,
+  digits = 3,
+  title = "30-day recurrence. Sensitivity ATB duration: <=13 versus >13 days: adjusted odds ratios"
+)
+
+```
+Plot the model
+
+```{r, fig.height=8, fig.width=9}
+#| fig-cap: "Figure 7. 30-day recurrence. Sensitivity ATB duration: <=13 versus >13 days. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+
+myplot <- plot_my_model(m_30D_effective_short)
+plotac <- "fig_x08"
+myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot
+```
+
+## 90-day recurrence. Sensitivity ATB duration: <=13 versus >13 days
+
+Fit the model
+
+```{r}
+m_90D_effective_short <- glm(
+  recurence_till_90D ~
+    treatment_under14D +
+    sex_female +
+    age_by30y +
+    log2_TX_to_infection +
+    urology_acute +
+    diabetes_severe +
+    mra_positive +
+    bad_response_early_worsening +
+    hemoculture_positive +
+    profylaxis +
+    severe_aki +
+    I(years_from2019 / 10),
+  data = data_analysis,
+  family = binomial(link = "logit")
+)
+summary(m_90D_effective_short)
+car::vif(m_90D_effective_short)
+
+sjPlot::tab_model(
+  m_90D_effective_short,
+  show.ci = 0.95,
+  show.p = TRUE,
+  show.se = FALSE,
+  digits = 3,
+  title = "90-day recurrence. Sensitivity ATB duration: <=13 versus >13 days: adjusted odds ratios"
+)
+
+```
+Plot the model
+
+```{r, fig.height=8, fig.width=9}
+#| fig-cap: "Figure 8. 90-day recurrence. Sensitivity ATB duration: <=13 versus >13 days. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+
+myplot <- plot_my_model(m_90D_effective_short)
+plotac <- "fig_x09"
+myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot
+```
+
+
+## 30-day recurrence. Overall duration per seven days
+
+Fit the model
+
+```{r}
+m_30D_overall_7d <- glm(
+  recurence_till_1M ~
+    ATB_overall_per7 +
+    sex_female +
+    age_by30y +
+    log2_TX_to_infection +
+    urology_acute +
+    diabetes_severe +
+    mra_positive +
+    bad_response_early_worsening +
+    hemoculture_positive +
+    profylaxis +
+    severe_aki +
+    I(years_from2019 / 10),
+  data = data_analysis,
+  family = binomial(link = "logit")
+)
+summary(m_30D_overall_7d)
+car::vif(m_30D_overall_7d)
+
+sjPlot::tab_model(
+  m_30D_overall_7d,
+  show.ci = 0.95,
+  show.p = TRUE,
+  show.se = FALSE,
+  digits = 3,
+  title = "30-day recurrence. Overall duration per seven days: adjusted odds ratios"
+)
+
+```
+Plot the model
+
+```{r, fig.height=8, fig.width=9}
+#| fig-cap: "Figure 9. 30-day recurrence. Overall duration per seven days. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+
+myplot <- plot_my_model(m_30D_overall_7d)
+plotac <- "fig_x10"
+myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot
+```
+
+
+## 90-day recurrence. Overall duration per seven days
+
+Fit the model
+
+```{r}
+m_90D_overall_7d <- glm(
+  recurence_till_90D ~
+    ATB_overall_per7 +
+    sex_female +
+    age_by30y +
+    log2_TX_to_infection +
+    urology_acute +
+    diabetes_severe +
+    mra_positive +
+    bad_response_early_worsening +
+    hemoculture_positive +
+    profylaxis +
+    severe_aki +
+    I(years_from2019 / 10),
+  data = data_analysis,
+  family = binomial(link = "logit")
+)
+summary(m_90D_overall_7d)
+car::vif(m_90D_overall_7d)
+
+sjPlot::tab_model(
+  m_90D_overall_7d,
+  show.ci = 0.95,
+  show.p = TRUE,
+  show.se = FALSE,
+  digits = 3,
+  title = "90-day recurrence. Overall duration per seven days: adjusted odds ratios"
+)
+
+```
+Plot the model
+
+```{r, fig.height=8, fig.width=9}
+#| fig-cap: "Figure 10. 90-day recurrence. Overall duration per seven days. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+
+myplot <- plot_my_model(m_90D_overall_7d)
+plotac <- "fig_x12"
+myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot
+```
+
+## 30-day recurrence. Overall duration per doubling
+
+Fit the model
+
+```{r}
+m_30D_overall_log2 <- glm(
+  recurence_till_1M ~
+    log2_ATB_duration_overall +
+    sex_female +
+    age_by30y +
+    log2_TX_to_infection +
+    urology_acute +
+    diabetes_severe +
+    mra_positive +
+    bad_response_early_worsening +
+    hemoculture_positive +
+    profylaxis +
+    severe_aki +
+    I(years_from2019 / 10),
+  data = data_analysis,
+  family = binomial(link = "logit")
+)
+summary(m_30D_overall_log2)
+car::vif(m_30D_overall_log2)
+
+sjPlot::tab_model(
+  m_30D_overall_log2,
+  show.ci = 0.95,
+  show.p = TRUE,
+  show.se = FALSE,
+  digits = 3,
+  title = "30-day recurrence. Overall duration per doubling: adjusted odds ratios"
+)
+
+```
+Plot the model
+
+```{r, fig.height=8, fig.width=9}
+#| fig-cap: "Figure 11. 30-day recurrence. Overall duration per doubling. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+
+myplot <- plot_my_model(m_30D_overall_log2)
+plotac <- "fig_x11"
+myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot
+```
+
+## 90-day recurrence. Overall duration per doubling
+
+Fit the model
+
+```{r}
+m_90D_overall_log2 <- glm(
+  recurence_till_90D ~
+    log2_ATB_duration_overall +
+    sex_female +
+    age_by30y +
+    log2_TX_to_infection +
+    urology_acute +
+    diabetes_severe +
+    mra_positive +
+    bad_response_early_worsening +
+    hemoculture_positive +
+    profylaxis +
+    severe_aki +
+    I(years_from2019 / 10),
+  data = data_analysis,
+  family = binomial(link = "logit")
+)
+summary(m_90D_overall_log2)
+car::vif(m_90D_overall_log2)
+
+sjPlot::tab_model(
+  m_90D_overall_log2,
+  show.ci = 0.95,
+  show.p = TRUE,
+  show.se = FALSE,
+  digits = 3,
+  title = "90-day recurrence. Overall duration per doubling: adjusted odds ratios"
+)
+
+```
+Plot the model
+
+```{r, fig.height=8, fig.width=9}
+#| fig-cap: "Figure 12. 90-day recurrence. Overall duration per doubling. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+
+myplot <- plot_my_model(m_90D_overall_log2)
+plotac <- "fig_x13"
+myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot
+```
+
+## 30-day recurrence. Sensitivity ATB duration with immunosuppression
+
+Add maintenance immunosuppression and prior depletion or rejection treatment to the corresponding original model. The original covariates, remain unchanged.
+
+```{r}
+m_30D_sensitivity_IS <- glm(
+  recurence_till_1M ~
+    ATB_sensitivity_per7 +
+    sex_female +
+    age_by30y +
+    log2_TX_to_infection +
+    urology_acute +
+    diabetes_severe +
+    mra_positive +
+    bad_response_early_worsening +
+    hemoculture_positive +
+    profylaxis +
+    severe_aki +
+    I(years_from2019 / 10) +
+    immunosuppression_regimen +
+    depletion_induction_or_rejection_treatment_6M,
+  data = data_analysis,
+  family = binomial(link = "logit")
+)
+summary(m_30D_sensitivity_IS)
+car::vif(m_30D_sensitivity_IS)
+sjPlot::tab_model(
+  m_30D_sensitivity_IS,
+  show.ci = 0.95,
+  show.p = TRUE,
+  show.se = FALSE,
+  digits = 3,
+  title = "30-day recurrence. Sensitivity ATB duration with immunosuppression: adjusted odds ratios"
+)
+```
+Plot the model
+
+```{r, fig.height=8, fig.width=9}
+#| fig-cap: "Figure 13. 30-day recurrence. Sensitivity ATB duration with immunosuppression. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. The model retains the original adjustment set and adds maintenance immunosuppression and depletion or rejection treatment in the preceding six months. OR states how many times recurrence odds change per modelled numerical unit, from 0 to 1 for binary predictors, or from the reference category to the category shown. Sensitivity ATB duration is per seven days, age per 30 years, calendar time per ten years and log2 variables per doubling. The dashed line marks OR = 1"
+
+myplot <- plot_my_model(m_30D_sensitivity_IS)
+plotac <- "fig_x20"
+myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot
+```
+
+## 90-day recurrence. Sensitivity ATB duration with immunosuppression
+
+Add maintenance immunosuppression and prior depletion or rejection treatment to the corresponding original model. The original covariates, remain unchanged.
+
+```{r}
+m_90D_sensitivity_IS <- glm(
+  recurence_till_90D ~
+    ATB_sensitivity_per7 +
+    sex_female +
+    age_by30y +
+    log2_TX_to_infection +
+    urology_acute +
+    diabetes_severe +
+    mra_positive +
+    bad_response_early_worsening +
+    hemoculture_positive +
+    profylaxis +
+    severe_aki +
+    I(years_from2019 / 10) +
+    immunosuppression_regimen +
+    depletion_induction_or_rejection_treatment_6M,
+  data = data_analysis,
+  family = binomial(link = "logit")
+)
+summary(m_90D_sensitivity_IS)
+car::vif(m_90D_sensitivity_IS)
+sjPlot::tab_model(
+  m_90D_sensitivity_IS,
+  show.ci = 0.95,
+  show.p = TRUE,
+  show.se = FALSE,
+  digits = 3,
+  title = "90-day recurrence. Sensitivity ATB duration with immunosuppression: adjusted odds ratios"
+)
+```
+Plot the model
+
+```{r, fig.height=8, fig.width=9}
+#| fig-cap: "Figure 14. 90-day recurrence. Sensitivity ATB duration with immunosuppression. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. The model retains the original adjustment set and adds maintenance immunosuppression and depletion or rejection treatment in the preceding six months. OR states how many times recurrence odds change per modelled numerical unit, from 0 to 1 for binary predictors, or from the reference category to the category shown. Sensitivity ATB duration is per seven days, age per 30 years, calendar time per ten years and log2 variables per doubling. The dashed line marks OR = 1"
+
+myplot <- plot_my_model(m_90D_sensitivity_IS)
+plotac <- "fig_x21"
+myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot
+```
+
+
+## 90-day, sensitivity per 7D, data 2017+ only
+
+Fit the model
+
+```{r}
+m_90D_effective_7d_2017 <- glm(
+  recurence_till_90D ~
+    ATB_sensitivity_per7 +
+    sex_female +
+    age_by30y +
+    log2_TX_to_infection +
+    urology_acute +
+    diabetes_severe +
+    mra_positive +
+    bad_response_early_worsening +
+    hemoculture_positive +
+    profylaxis +
+    severe_aki +
+    I(years_from2019 / 10),
+  data = data_analysis |> 
+    filter(calendar_year >= 2017),
+  family = binomial(link = "logit")
+)
+summary(m_90D_effective_7d_2017)
+car::vif(m_90D_effective_7d_2017)
+
+sjPlot::tab_model(
+  m_90D_effective_7d_2017,
+  show.ci = 0.95,
+  show.p = TRUE,
+  show.se = FALSE,
+  digits = 3,
+  title = "90-day recurrence. Sensitivity ATB duration per additional seven days: adjusted odds ratios"
+)
+
+```
+Plot the model
+
+```{r, fig.height=8, fig.width=9}
+#| fig-cap: "Figure 15. 90-day recurrence. Sensitivity ATB duration per additional seven days (year 2017+). Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+
+myplot <- plot_my_model(m_90D_effective_7d_2017)
+plotac <- "fig_x05v2"
+myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot
+```
+
+## 30-day, sensitivy per 7D, data 2017+ only
+
+Fit the model
+
+```{r}
+m_30D_effective_7d_2017 <- glm(
+  recurence_till_1M ~
+    ATB_sensitivity_per7 +
+    sex_female +
+    age_by30y +
+    log2_TX_to_infection +
+    urology_acute +
+    diabetes_severe +
+    mra_positive +
+    bad_response_early_worsening +
+    hemoculture_positive +
+    profylaxis +
+    severe_aki +
+    I(years_from2019 / 10),
+  data = data_analysis |> filter(calendar_year >= 2017),
+  family = binomial(link = "logit")
+)
+summary(m_30D_effective_7d_2017)
+car::vif(m_30D_effective_7d_2017)
+
+sjPlot::tab_model(
+  m_30D_effective_7d_2017,
+  show.ci = 0.95,
+  show.p = TRUE,
+  show.se = FALSE,
+  digits = 3,
+  title = "30-day recurrence. Sensitivity ATB duration per additional seven days: adjusted odds ratios"
+)
+
+```
+Plot the model
+
+```{r, fig.height=8, fig.width=9}
+#| fig-cap: "Figure 16. 30-day recurrence. Sensitivity ATB duration per additional seven days (year 2017+). Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+
+myplot <- plot_my_model(m_30D_effective_7d)
+plotac <- "fig_x04v2"
+myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot
+```
+
+
+# Matching
+
+Match treatment groups 1:1 within calendar periods
+
+```{r}
+matching_data <- data_analysis
+
+match_model <- MatchIt::matchit(
+  treatment_under14D ~
+    sex_female +
+    age_by30y +
+    log2_TX_to_infection +
+    urology_acute +
+    stent_in_situ +
+    bph_pca_subvesical_obstruction +
+    urethral_stricture +
+    renofunctional_obstruction +
+    diabetes_severe +
+    mra_positive +
+    bad_response_early_worsening +
+    hemoculture_positive +
+    profylaxis +
+    severe_aki +
+    years_from2019 +
+    CRP_entry_by100,
+  data = matching_data,
+  method = "nearest",
+  distance = "glm",
+  link = "linear.logit",
+  exact = ~ calendar_period,
+  caliper = 0.2,
+  std.caliper = TRUE,
+  ratio = 1,
+  replace = FALSE,
+  estimand = "ATT"
+)
+match_summary <- summary(match_model, standardize = TRUE)
+matched_data <- MatchIt::match_data(match_model) |>
+  data.frame()
+```
+The 2017+ subset retains complete pairs from all-years matching
+
+Create the 2017+ subsets and show sample sizes.
+
+```{r}
+matching_data_2017 <- matching_data |>
+  dplyr::filter(calendar_year >= 2017) |>
+  data.frame()
+
+matched_data_2017 <- matched_data |>
+  dplyr::filter(calendar_year >= 2017) |>
+  data.frame()
+
+matching_counts <- data.frame(
+  cohort = c("All", "2017+"),
+  available = c(nrow(matching_data), nrow(matching_data_2017)),
+  matched = c(nrow(matched_data), nrow(matched_data_2017)),
+  pairs = c(
+    dplyr::n_distinct(matched_data$subclass),
+    dplyr::n_distinct(matched_data_2017$subclass)
+  )
+)
+
+kableExtra::kable(
+  matching_counts,
+  caption = "Matching sample sizes for all years and 2017+. available counts eligible patients before matching; matched counts retained patients; pairs counts matched pairs. The 2017+ subset is selected after matching across all years and retains the original pairs and weights"
+)
+```
+
+## Exploration, all
+
+### Clostridioides difficile infection
+
+Show the number and percentage of patients with recorded clostridial infection by sensitivity ATB duration, before and after matching. No additional time window is imposed on the existing infection indicator.
+
+```{r}
+clostridium_summary_all <- dplyr::bind_rows(
+  "Before matching" = matching_data,
+  "After matching" = matched_data,
+  .id = "cohort"
+) |>
+  dplyr::group_by(
+    cohort,
+    treatment_group
+  ) |>
+  dplyr::summarise(
+    patients = dplyr::n(),
+    known_status = sum(!is.na(clostridium)),
+    missing_status = sum(is.na(clostridium)),
+    infections = sum(clostridium == 1, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  dplyr::mutate(
+    infection_percent = 100 * infections / known_status
+  ) |>
+  data.frame()
+
+kableExtra::kable(
+  clostridium_summary_all,
+  digits = 1,
+  caption = "All years. Recorded clostridial infection by sensitivity ATB duration before and after matching. cohort identifies the analysis population; treatment_group distinguishes <=13 and >13 days. patients is the group size; known_status and missing_status count available and missing infection indicators; infections counts patients coded 1; infection_percent is the percentage with infection among patients with known status. These are patient proportions, not person-time incidence rates; no additional restriction on infection timing was applied"
+)
+```
+
+### Observed treatment duration after matching
+
+Describe actual sensitivity ATB duration, which defines the treatment groups, and overall ATB duration in the same matched patients.
+
+```{r}
+matched_duration_all <- matched_data |>
+  dplyr::select(
+    treatment_group,
+    ATB_sensitivity_duration,
+    ATB_duration_overall
+  ) |>
+  tidyr::pivot_longer(
+    cols = c(
+      ATB_sensitivity_duration,
+      ATB_duration_overall
+    ),
+    names_to = "duration",
+    values_to = "days"
+  ) |>
+  dplyr::group_by(
+    treatment_group,
+    duration
+  ) |>
+  dplyr::summarise(
+    patients = dplyr::n(),
+    available = sum(!is.na(days)),
+    median_days = median(days, na.rm = TRUE),
+    q25_days = quantile(days, 0.25, na.rm = TRUE),
+    q75_days = quantile(days, 0.75, na.rm = TRUE),
+    min_days = min(days, na.rm = TRUE),
+    max_days = max(days, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  data.frame()
+
+kableExtra::kable(
+  matched_duration_all,
+  digits = 1,
+  caption = "All years. Observed antibiotic treatment duration in the matched cohort. treatment_group is defined by sensitivity ATB duration: short <=13 days and long >13 days. ATB_sensitivity_duration is the interval from sensitivity ATB initiation to therapy completion; ATB_duration_overall is the interval from overall ATB initiation to completion. patients is the group size; available counts nonmissing durations; median_days is the median; q25_days and q75_days are the lower and upper quartiles; min_days and max_days give the observed range. All durations are in days"
+)
+```
+### Balance, all
+
+Check balance
+
+```{r, fig.height=8, fig.width=9}
+#| fig-cap: "Figure 17. All years. Covariate balance before and after matching. Points show absolute standardized mean differences, standardized by the pre-matching short-treatment group in the displayed cohort; colours distinguish before and after matching. The dashed line marks 0.1. Original all-years matching weights are retained; no rematching is performed"
+
+matching_balance_all <- summary(
+  match_model,
+  standardize = TRUE
+)
+
+matching_before_all <- as.data.frame(
+  matching_balance_all$sum.all,
+  check.names = FALSE
+) |>
+  tibble::rownames_to_column("covariate") |>
+  janitor::clean_names() |>
+  dplyr::mutate(stage = "Before matching") |>
+  data.frame()
+
+matching_after_all <- as.data.frame(
+  matching_balance_all$sum.matched,
+  check.names = FALSE
+) |>
+  tibble::rownames_to_column("covariate") |>
+  janitor::clean_names() |>
+  dplyr::mutate(stage = "After matching") |>
+  data.frame()
+
+matching_balance_plot_all <- dplyr::bind_rows(
+  matching_before_all,
+  matching_after_all
+) |>
+  data.frame()
+
+myplot <- ggplot(
+  matching_balance_plot_all,
+  aes(abs(std_mean_diff), covariate, colour = stage)
+) +
+  geom_vline(xintercept = 0.1, linetype = "dashed", colour = "grey50") +
+  geom_point() +
+  scale_colour_manual(values = c("#A65F35", "#477DA0")) +
+  labs(x = "Absolute standardized mean difference", y = NULL,
+       colour = NULL)
+plotac <- "fig_matching_balance_all"
+myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot
+```
+
+## KM after matching, all
+
+Estimate recurrence-free survival and compare matched groups
+
+The existing recurrence indicators are retained. Empty confirmed-recurrence dates mean no recurrence within the recorded 90-day window, as agreed. Patients without recurrence in this window are administratively censored at day 90. The fixed-day comparisons assume recurrence status is known through day 90 for all matched patients; there is no earlier loss to follow-up in this coding.
+
+### Survival curves and overall log-rank test
+
+Create the survival data and test the curves over the full 90 days. subclass identifies the matched pair.
+
+```{r}
+matched_survival_all <- matched_data |>
+  dplyr::mutate(
+    treatment = factor(
+      dplyr::if_else(treatment_under14D == 1, "short", "long"),
+      levels = c("long", "short")
+    ),
+    time_90D = dplyr::if_else(
+      recurence_till_90D == 1,
+      as.numeric(Infection_to90D_day - EndDate_therapy),
+      90
+    )
+  ) |>
+  data.frame()
+
+km_matched_90D_all <- survfit(
+  Surv(time_90D, recurence_till_90D) ~ treatment,
+  data = matched_survival_all,
+  conf.type = "log-log"
+)
+
+logrank_matched_90D_all <- survdiff(
+  Surv(time_90D, recurence_till_90D) ~
+    treatment + strata(subclass),
+  data = matched_survival_all,
+  rho = 0
+)
+
+logrank_p_all <- pchisq(
+  logrank_matched_90D_all$chisq,
+  df = 1,
+  lower.tail = FALSE
+)
+
+logrank_results_all <- data.frame(
+  pairs = dplyr::n_distinct(matched_survival_all$subclass),
+  patients = nrow(matched_survival_all),
+  chi_squared = logrank_matched_90D_all$chisq,
+  df = 1,
+  p_value = logrank_p_all
+)
+kableExtra::kable(
+  logrank_results_all,
+  digits = 3,
+  caption = "All years. Overall comparison of recurrence-free survival through 90 days after therapy completion in the 1:1 matched cohort. The log-rank test is stratified by matched pair. pairs and patients are the numbers analysed; chi_squared is the test statistic, df its degrees of freedom, and p_value the unadjusted overall p-value"
+)
+```
+
+### Post-hoc comparisons at days 30 and 90
+
+```{r}
+matched_pairs_all <- matched_survival_all |>
+  dplyr::select(
+    subclass,
+    treatment,
+    recurence_till_1M,
+    recurence_till_90D
+  ) |>
+  tidyr::pivot_longer(
+    cols = c(recurence_till_1M, recurence_till_90D),
+    names_to = "outcome",
+    values_to = "event"
+  ) |>
+  dplyr::mutate(
+    day = dplyr::if_else(outcome == "recurence_till_1M", 30, 90)
+  ) |>
+  dplyr::select(-outcome) |>
+  tidyr::pivot_wider(
+    names_from = treatment,
+    values_from = event
+  ) |>
+  data.frame()
+
+matched_posthoc_all <- matched_pairs_all |>
+  dplyr::group_by(day) |>
+  dplyr::summarise(
+    pairs = dplyr::n(),
+    short_events = sum(short),
+    long_events = sum(long),
+    short_only = sum(short == 1 & long == 0),
+    long_only = sum(short == 0 & long == 1),
+    .groups = "drop"
+  ) |>
+  dplyr::rowwise() |>
+  dplyr::mutate(
+    p_value = if (short_only + long_only == 0) {
+      1
+    } else {
+      binom.test(
+        short_only,
+        short_only + long_only,
+        p = 0.5,
+        alternative = "two.sided"
+      )$p.value
+    }
+  ) |>
+  dplyr::ungroup() |>
+  dplyr::mutate(
+    short_risk = short_events / pairs,
+    long_risk = long_events / pairs,
+    risk_difference = short_risk - long_risk,
+    p_holm = p.adjust(p_value, method = "holm")
+  ) |>
+  dplyr::arrange(day) |>
+  data.frame()
+
+kableExtra::kable(
+  matched_posthoc_all,
+  digits = 3,
+  caption = "All years. Post-hoc comparisons of recurrence by days 30 and 90 after therapy completion. short denotes sensitivity ATB duration <=13 days and long denotes >13 days. pairs is the number of matched pairs; short_events and long_events count patients with recurrence in each group. short_only and long_only count discordant pairs in which recurrence occurred only in the short-treatment or only in the long-treatment patient. short_risk and long_risk are recurrence proportions; risk_difference is short minus long. p_value is the two-sided exact McNemar p-value, calculated by a binomial test of discordant pairs; p_holm adjusts the two post-hoc p-values using Holm's method"
+)
+```
+
+### Plot the matched survival curves
+
+Show the overall pair-stratified log-rank p-value and the two Holm-adjusted post-hoc p-values. Shading represents pointwise confidence intervals for each curve.
+
+```{r, fig.height=7, fig.width=7}
+#| fig-cap: "Figure 18. All years. Recurrence-free survival through 90 days after therapy completion in the cohort matched 1:1 on propensity score. Curves are unadjusted Kaplan–Meier estimates for sensitivity ATB duration <=13 and >13 days; shading shows pointwise 95% confidence intervals calculated using Greenwood variance and the log-log transformation. Tick marks indicate censoring and the lower panel shows patients at risk. Vertical dashed lines mark days 30 and 90. The overall p-value is from a log-rank test stratified by matched pair; post-hoc p-values compare recurrence proportions by days 30 and 90 using two-sided exact McNemar tests with Holm adjustment across these two comparisons"
+
+km_p_text_all <- paste0(
+  "Pair-stratified log-rank p = ",
+  format.pval(logrank_p_all, digits = 3, eps = 0),
+  "\nDay 30, post-hoc p (Holm) = ",
+  format.pval(
+    matched_posthoc_all$p_holm[matched_posthoc_all$day == 30],
+    digits = 3,
+    eps = 0
+  ),
+  "\nDay 90, post-hoc p (Holm) = ",
+  format.pval(
+    matched_posthoc_all$p_holm[matched_posthoc_all$day == 90],
+    digits = 3,
+    eps = 0
+  )
+)
+
+myplot <- survminer::ggsurvplot(
+  km_matched_90D_all,
+  data = matched_survival_all,
+  pval = km_p_text_all,
+  pval.coord = c(3, 0.15),
+  pval.size = 3.5,
+  conf.int = TRUE,
+  risk.table = TRUE,
+  risk.table.y.text.col = FALSE,
+  risk.table.fontsize = 3.2,
+  censor.shape = 124,
+  censor.size = 2,
+  palette = c("#477DA0", "#A65F35"),
+  xlab = "Days from the end of therapy",
+  ylab = "Probability of remaining recurrence-free",
+  legend.title = "All years. Sensitivity ATB duration",
+  legend.labs = c(">13 days", "<=13 days"),
+  break.time.by = 15,
+  xlim = c(0, 90),
+  ggtheme = theme_grey()
+)
+
+myplot$plot <- myplot$plot +
+  geom_vline(
+    xintercept = c(30, 90),
+    linetype = "dashed",
+    colour = "grey50"
+  )
+
+myplot <- cowplot::plot_grid(
+  myplot$plot,
+  myplot$table + theme(legend.position = "none"),
+  ncol = 1,
+  rel_heights = c(0.75, 0.25),
+  align = "v",
+  axis = "lr"
+)
+
+plotac <- "fig_x25_all"
+myplot <- save_plot(myplot, plotac, width = 7, height = 7)
+myplot
+```
+
+### HR, 90D
+
+```{r}
+m_cox_matched_90D_all <- coxph(
+  Surv(time_90D, recurence_till_90D) ~ treatment_under14D,
+  data = matched_survival_all,
+  cluster = subclass
+)
+
+cox_summary_all <- summary(m_cox_matched_90D_all)
+
+cox_results_all <- data.frame(
+  comparison = "<=13 versus >13 days",
+  n = m_cox_matched_90D_all$n,
+  events = m_cox_matched_90D_all$nevent,
+  HR = cox_summary_all$conf.int[, "exp(coef)"],
+  lower = cox_summary_all$conf.int[, "lower .95"],
+  upper = cox_summary_all$conf.int[, "upper .95"],
+  p_value = cox_summary_all$coefficients[, "Pr(>|z|)"],
+  row.names = NULL
+)
+
+kableExtra::kable(
+  cox_results_all,
+  digits = 3,
+  caption = "All years. Recurrence within 90 days after therapy completion in the matched cohort. A Cox proportional hazards model included treatment group as the sole predictor, with robust variance clustered by matched pair. HR compares sensitivity ATB treatment lasting <=13 days with >13 days; HR >1 indicates a higher recurrence hazard with shorter treatment. n is the number of patients; events is the number of recurrences; lower and upper are robust Wald 95% confidence limits; p_value is the two-sided robust Wald p-value"
+)
+```
+
+### HR, 30D
+
+Estimate the treatment-group hazard ratio over the first 30 days after therapy completion in the original matched cohort. Follow-up is administratively censored at day 30; recurrences occurring later are not counted as events in this analysis.
+
+```{r}
+matched_survival_30D_all <- matched_survival_all |>
+  dplyr::mutate(
+    time_30D = pmin(time_90D, 30),
+    event_30D = as.integer(
+      recurence_till_90D == 1 & time_90D <= 30
+    )
+  ) |>
+  data.frame()
+
+m_cox_matched_30D_all <- coxph(
+  Surv(time_30D, event_30D) ~ treatment_under14D,
+  data = matched_survival_30D_all,
+  cluster = subclass
+)
+
+cox_summary_30D_all <- summary(m_cox_matched_30D_all)
+
+cox_results_30D_all <- data.frame(
+  comparison = "<=13 versus >13 days",
+  n = m_cox_matched_30D_all$n,
+  events = m_cox_matched_30D_all$nevent,
+  HR = cox_summary_30D_all$conf.int[, "exp(coef)"],
+  lower = cox_summary_30D_all$conf.int[, "lower .95"],
+  upper = cox_summary_30D_all$conf.int[, "upper .95"],
+  p_value = cox_summary_30D_all$coefficients[, "Pr(>|z|)"],
+  row.names = NULL
+)
+
+kableExtra::kable(
+  cox_results_30D_all,
+  digits = 3,
+  caption = "All years. Recurrence within 30 days after therapy completion in the original matched cohort, irrespective of pathogen concordance. Follow-up was administratively censored at day 30. A Cox proportional hazards model included treatment group as the sole predictor, with robust variance clustered by matched pair. HR states how many times the recurrence hazard changes from >13 to <=13 days of sensitivity ATB treatment; HR >1 indicates a higher hazard with shorter treatment. n is the number analysed; events counts recurrences; lower and upper are robust Wald 95% confidence limits; p_value is the two-sided robust Wald p-value"
+)
+```
+
+## Exploration, 2017+
+
+### Clostridioides difficile infection
+
+Show the number and percentage of patients with recorded clostridial infection by sensitivity ATB duration, before and after matching. No additional time window is imposed on the existing infection indicator.
+
+```{r}
+clostridium_summary_2017 <- dplyr::bind_rows(
+  "Before matching" = matching_data_2017,
+  "After matching" = matched_data_2017,
+  .id = "cohort"
+) |>
+  dplyr::group_by(
+    cohort,
+    treatment_group
+  ) |>
+  dplyr::summarise(
+    patients = dplyr::n(),
+    known_status = sum(!is.na(clostridium)),
+    missing_status = sum(is.na(clostridium)),
+    infections = sum(clostridium == 1, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  dplyr::mutate(
+    infection_percent = 100 * infections / known_status
+  ) |>
+  data.frame()
+
+kableExtra::kable(
+  clostridium_summary_2017,
+  digits = 1,
+  caption = "2017+. Recorded clostridial infection by sensitivity ATB duration before and after matching. cohort identifies the analysis population; treatment_group distinguishes <=13 and >13 days. patients is the group size; known_status and missing_status count available and missing infection indicators; infections counts patients coded 1; infection_percent is the percentage with infection among patients with known status. These are patient proportions, not person-time incidence rates; no additional restriction on infection timing was applied"
+)
+```
+
+### Observed treatment duration after matching
+
+Describe actual sensitivity ATB duration, which defines the treatment groups, and overall ATB duration in the same matched patients.
+
+```{r}
+matched_duration_2017 <- matched_data_2017 |>
+  dplyr::select(
+    treatment_group,
+    ATB_sensitivity_duration,
+    ATB_duration_overall
+  ) |>
+  tidyr::pivot_longer(
+    cols = c(
+      ATB_sensitivity_duration,
+      ATB_duration_overall
+    ),
+    names_to = "duration",
+    values_to = "days"
+  ) |>
+  dplyr::group_by(
+    treatment_group,
+    duration
+  ) |>
+  dplyr::summarise(
+    patients = dplyr::n(),
+    available = sum(!is.na(days)),
+    median_days = median(days, na.rm = TRUE),
+    q25_days = quantile(days, 0.25, na.rm = TRUE),
+    q75_days = quantile(days, 0.75, na.rm = TRUE),
+    min_days = min(days, na.rm = TRUE),
+    max_days = max(days, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  data.frame()
+
+kableExtra::kable(
+  matched_duration_2017,
+  digits = 1,
+  caption = "2017+. Observed antibiotic treatment duration in the matched cohort. treatment_group is defined by sensitivity ATB duration: short <=13 days and long >13 days. ATB_sensitivity_duration is the interval from sensitivity ATB initiation to therapy completion; ATB_duration_overall is the interval from overall ATB initiation to completion. patients is the group size; available counts nonmissing durations; median_days is the median; q25_days and q75_days are the lower and upper quartiles; min_days and max_days give the observed range. All durations are in days"
+)
+```
+### Balance, 2017+
+
+Check balance
+
+```{r, fig.height=8, fig.width=9}
+#| fig-cap: "Figure 19. 2017+. Covariate balance before and after matching. Points show absolute standardized mean differences, standardized by the pre-matching short-treatment group in the displayed cohort; colours distinguish before and after matching. The dashed line marks 0.1. Original all-years matching weights are retained; no rematching is performed"
+
+matching_keep_2017 <- matching_data$calendar_year >= 2017
+match_model_balance_2017 <- match_model
+match_model_balance_2017$X <- match_model$X[
+  matching_keep_2017, , drop = FALSE
+]
+match_model_balance_2017$treat <- match_model$treat[
+  matching_keep_2017
+]
+match_model_balance_2017$weights <- match_model$weights[
+  matching_keep_2017
+]
+match_model_balance_2017$distance <- match_model$distance[
+  matching_keep_2017
+]
+match_model_balance_2017$discarded <- match_model$discarded[
+  matching_keep_2017
+]
+match_model_balance_2017$subclass <- match_model$subclass[
+  matching_keep_2017
+]
+match_model_balance_2017$match.matrix <- match_model$match.matrix[
+  rownames(match_model$match.matrix) %in%
+    names(match_model_balance_2017$treat), , drop = FALSE
+]
+
+matching_balance_2017 <- summary(
+  match_model_balance_2017,
+  standardize = TRUE
+)
+
+matching_before_2017 <- as.data.frame(
+  matching_balance_2017$sum.all,
+  check.names = FALSE
+) |>
+  tibble::rownames_to_column("covariate") |>
+  janitor::clean_names() |>
+  dplyr::mutate(stage = "Before matching") |>
+  data.frame()
+
+matching_after_2017 <- as.data.frame(
+  matching_balance_2017$sum.matched,
+  check.names = FALSE
+) |>
+  tibble::rownames_to_column("covariate") |>
+  janitor::clean_names() |>
+  dplyr::mutate(stage = "After matching") |>
+  data.frame()
+
+matching_balance_plot_2017 <- dplyr::bind_rows(
+  matching_before_2017,
+  matching_after_2017
+) |>
+  data.frame()
+
+myplot <- ggplot(
+  matching_balance_plot_2017,
+  aes(abs(std_mean_diff), covariate, colour = stage)
+) +
+  geom_vline(xintercept = 0.1, linetype = "dashed", colour = "grey50") +
+  geom_point() +
+  scale_colour_manual(values = c("#A65F35", "#477DA0")) +
+  labs(x = "Absolute standardized mean difference", y = NULL,
+       colour = NULL)
+plotac <- "fig_matching_balance_2017"
+myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot
+```
+
+## KM after matching, 2017+
+
+### Survival curves and overall log-rank test
+
+```{r}
+matched_survival_2017 <- matched_data_2017 |>
+  dplyr::mutate(
+    treatment = factor(
+      dplyr::if_else(treatment_under14D == 1, "short", "long"),
+      levels = c("long", "short")
+    ),
+    time_90D = dplyr::if_else(
+      recurence_till_90D == 1,
+      as.numeric(Infection_to90D_day - EndDate_therapy),
+      90
+    )
+  ) |>
+  data.frame()
+
+km_matched_90D_2017 <- survfit(
+  Surv(time_90D, recurence_till_90D) ~ treatment,
+  data = matched_survival_2017,
+  conf.type = "log-log"
+)
+
+logrank_matched_90D_2017 <- survdiff(
+  Surv(time_90D, recurence_till_90D) ~
+    treatment + strata(subclass),
+  data = matched_survival_2017,
+  rho = 0
+)
+
+logrank_p_2017 <- pchisq(
+  logrank_matched_90D_2017$chisq,
+  df = 1,
+  lower.tail = FALSE
+)
+
+logrank_results_2017 <- data.frame(
+  pairs = dplyr::n_distinct(matched_survival_2017$subclass),
+  patients = nrow(matched_survival_2017),
+  chi_squared = logrank_matched_90D_2017$chisq,
+  df = 1,
+  p_value = logrank_p_2017
+)
+kableExtra::kable(
+  logrank_results_2017,
+  digits = 3,
+  caption = "2017+. Overall comparison of recurrence-free survival through 90 days after therapy completion in the 1:1 matched cohort. The log-rank test is stratified by matched pair. pairs and patients are the numbers analysed; chi_squared is the test statistic, df its degrees of freedom, and p_value the unadjusted overall p-value"
+)
+```
+
+### Post-hoc comparisons at days 30 and 90
+
+```{r}
+matched_pairs_2017 <- matched_survival_2017 |>
+  dplyr::select(
+    subclass,
+    treatment,
+    recurence_till_1M,
+    recurence_till_90D
+  ) |>
+  tidyr::pivot_longer(
+    cols = c(recurence_till_1M, recurence_till_90D),
+    names_to = "outcome",
+    values_to = "event"
+  ) |>
+  dplyr::mutate(
+    day = dplyr::if_else(outcome == "recurence_till_1M", 30, 90)
+  ) |>
+  dplyr::select(-outcome) |>
+  tidyr::pivot_wider(
+    names_from = treatment,
+    values_from = event
+  ) |>
+  data.frame()
+
+matched_posthoc_2017 <- matched_pairs_2017 |>
+  dplyr::group_by(day) |>
+  dplyr::summarise(
+    pairs = dplyr::n(),
+    short_events = sum(short),
+    long_events = sum(long),
+    short_only = sum(short == 1 & long == 0),
+    long_only = sum(short == 0 & long == 1),
+    .groups = "drop"
+  ) |>
+  dplyr::rowwise() |>
+  dplyr::mutate(
+    p_value = if (short_only + long_only == 0) {
+      1
+    } else {
+      binom.test(
+        short_only,
+        short_only + long_only,
+        p = 0.5,
+        alternative = "two.sided"
+      )$p.value
+    }
+  ) |>
+  dplyr::ungroup() |>
+  dplyr::mutate(
+    short_risk = short_events / pairs,
+    long_risk = long_events / pairs,
+    risk_difference = short_risk - long_risk,
+    p_holm = p.adjust(p_value, method = "holm")
+  ) |>
+  dplyr::arrange(day) |>
+  data.frame()
+
+kableExtra::kable(
+  matched_posthoc_2017,
+  digits = 3,
+  caption = "2017+. Post-hoc comparisons of recurrence by days 30 and 90 after therapy completion. short denotes sensitivity ATB duration <=13 days and long denotes >13 days. pairs is the number of matched pairs; short_events and long_events count patients with recurrence in each group. short_only and long_only count discordant pairs in which recurrence occurred only in the short-treatment or only in the long-treatment patient. short_risk and long_risk are recurrence proportions; risk_difference is short minus long. p_value is the two-sided exact McNemar p-value, calculated by a binomial test of discordant pairs; p_holm adjusts the two post-hoc p-values using Holm's method"
+)
+```
+
+### Plot the matched survival curves
+
+```{r, fig.height=7, fig.width=7}
+#| fig-cap: "Figure 20. 2017+. Recurrence-free survival through 90 days after therapy completion in the cohort matched 1:1 on propensity score. Curves are unadjusted Kaplan–Meier estimates for sensitivity ATB duration <=13 and >13 days; shading shows pointwise 95% confidence intervals calculated using Greenwood variance and the log-log transformation. Tick marks indicate censoring and the lower panel shows patients at risk. Vertical dashed lines mark days 30 and 90. The overall p-value is from a log-rank test stratified by matched pair; post-hoc p-values compare recurrence proportions by days 30 and 90 using two-sided exact McNemar tests with Holm adjustment across these two comparisons"
+
+km_p_text_2017 <- paste0(
+  "Pair-stratified log-rank p = ",
+  format.pval(logrank_p_2017, digits = 3, eps = 0),
+  "\nDay 30, post-hoc p (Holm) = ",
+  format.pval(
+    matched_posthoc_2017$p_holm[matched_posthoc_2017$day == 30],
+    digits = 3,
+    eps = 0
+  ),
+  "\nDay 90, post-hoc p (Holm) = ",
+  format.pval(
+    matched_posthoc_2017$p_holm[matched_posthoc_2017$day == 90],
+    digits = 3,
+    eps = 0
+  )
+)
+
+myplot <- survminer::ggsurvplot(
+  km_matched_90D_2017,
+  data = matched_survival_2017,
+  pval = km_p_text_2017,
+  pval.coord = c(3, 0.15),
+  pval.size = 3.5,
+  conf.int = TRUE,
+  risk.table = TRUE,
+  risk.table.y.text.col = FALSE,
+  risk.table.fontsize = 3.2,
+  censor.shape = 124,
+  censor.size = 2,
+  palette = c("#477DA0", "#A65F35"),
+  xlab = "Days from the end of therapy",
+  ylab = "Probability of remaining recurrence-free",
+  legend.title = "2017+. Sensitivity ATB duration",
+  legend.labs = c(">13 days", "<=13 days"),
+  break.time.by = 15,
+  xlim = c(0, 90),
+  ggtheme = theme_grey()
+)
+
+myplot$plot <- myplot$plot +
+  geom_vline(
+    xintercept = c(30, 90),
+    linetype = "dashed",
+    colour = "grey50"
+  )
+
+myplot <- cowplot::plot_grid(
+  myplot$plot,
+  myplot$table + theme(legend.position = "none"),
+  ncol = 1,
+  rel_heights = c(0.75, 0.25),
+  align = "v",
+  axis = "lr"
+)
+
+plotac <- "fig_x25_2017"
+myplot <- save_plot(myplot, plotac, width = 7, height = 7)
+myplot
+```
+
+### HR, 90D
+
+```{r}
+m_cox_matched_90D_2017 <- coxph(
+  Surv(time_90D, recurence_till_90D) ~ treatment_under14D,
+  data = matched_survival_2017,
+  cluster = subclass
+)
+
+cox_summary_2017 <- summary(m_cox_matched_90D_2017)
+
+cox_results_2017 <- data.frame(
+  comparison = "<=13 versus >13 days",
+  n = m_cox_matched_90D_2017$n,
+  events = m_cox_matched_90D_2017$nevent,
+  HR = cox_summary_2017$conf.int[, "exp(coef)"],
+  lower = cox_summary_2017$conf.int[, "lower .95"],
+  upper = cox_summary_2017$conf.int[, "upper .95"],
+  p_value = cox_summary_2017$coefficients[, "Pr(>|z|)"],
+  row.names = NULL
+)
+
+kableExtra::kable(
+  cox_results_2017,
+  digits = 3,
+  caption = "2017+. Recurrence within 90 days after therapy completion in the matched cohort. A Cox proportional hazards model included treatment group as the sole predictor, with robust variance clustered by matched pair. HR compares sensitivity ATB treatment lasting <=13 days with >13 days; HR >1 indicates a higher recurrence hazard with shorter treatment. n is the number of patients; events is the number of recurrences; lower and upper are robust Wald 95% confidence limits; p_value is the two-sided robust Wald p-value"
+)
+```
+
+### HR, 30D
+
+Estimate the treatment-group hazard ratio over the first 30 days after therapy completion in the original matched cohort. Follow-up is administratively censored at day 30; recurrences occurring later are not counted as events in this analysis.
+
+```{r}
+matched_survival_30D_2017 <- matched_survival_2017 |>
+  dplyr::mutate(
+    time_30D = pmin(time_90D, 30),
+    event_30D = as.integer(
+      recurence_till_90D == 1 & time_90D <= 30
+    )
+  ) |>
+  data.frame()
+
+m_cox_matched_30D_2017 <- coxph(
+  Surv(time_30D, event_30D) ~ treatment_under14D,
+  data = matched_survival_30D_2017,
+  cluster = subclass
+)
+
+cox_summary_30D_2017 <- summary(m_cox_matched_30D_2017)
+
+cox_results_30D_2017 <- data.frame(
+  comparison = "<=13 versus >13 days",
+  n = m_cox_matched_30D_2017$n,
+  events = m_cox_matched_30D_2017$nevent,
+  HR = cox_summary_30D_2017$conf.int[, "exp(coef)"],
+  lower = cox_summary_30D_2017$conf.int[, "lower .95"],
+  upper = cox_summary_30D_2017$conf.int[, "upper .95"],
+  p_value = cox_summary_30D_2017$coefficients[, "Pr(>|z|)"],
+  row.names = NULL
+)
+
+kableExtra::kable(
+  cox_results_30D_2017,
+  digits = 3,
+  caption = "2017+. Recurrence within 30 days after therapy completion in the original matched cohort, irrespective of pathogen concordance. Follow-up was administratively censored at day 30. A Cox proportional hazards model included treatment group as the sole predictor, with robust variance clustered by matched pair. HR states how many times the recurrence hazard changes from >13 to <=13 days of sensitivity ATB treatment; HR >1 indicates a higher hazard with shorter treatment. n is the number analysed; events counts recurrences; lower and upper are robust Wald 95% confidence limits; p_value is the two-sided robust Wald p-value"
+)
+```
+
+## Relapse matching
+
+Relapse is defined as recurrence within 30 days after therapy completion with concordant pathogens in the initial and recurrent infections. Following the clinician's definition, hemoculture_agreed is interpreted here as concordance between these two infections. The analysis includes patients with an identified pathogen in InfAgent_1.
+
+### Define eligible cohort
+
+Inspect the recorded initial pathogens and the entries excluded as unidentified. Normalization below affects only the eligibility check; the original pathogen column is retained.
+
+```{r}
+unidentified_agents <- c(
+  "",
+  "0",
+  "nezachyceno",
+  "nezachycen",
+  "nezachycena",
+  "nezjištěno",
+  "nezjisteno",
+  "negativní",
+  "negativni",
+  "neg",
+  "neg.",
+  "negativni kultivace"
+)
+
+relapse_data <- data_analysis |>
+  dplyr::mutate(
+    initial_agent_text = stringr::str_to_lower(
+      stringr::str_squish(InfAgent_1)
+    ),
+    initial_agent_identified = !is.na(initial_agent_text) &
+      !(initial_agent_text %in% unidentified_agents),
+    relapse_30D = dplyr::case_when(
+      recurence_till_1M == 0 ~ 0,
+      recurence_till_1M == 1 & hemoculture_agreed == 1 ~ 1,
+      recurence_till_1M == 1 & hemoculture_agreed == 0 ~ 0,
+      TRUE ~ NA_real_
+    )
+  ) |>
+  data.frame()
+
+agent_check <- relapse_data |>
+  dplyr::count(
+    InfAgent_1,
+    initial_agent_identified,
+    name = "patients"
+  ) |>
+  data.frame()
+
+kableExtra::kable(
+  agent_check,
+  caption = "Initial pathogen records and eligibility. InfAgent_1 is the original recorded value; initial_agent_identified indicates whether the entry is retained as an identified pathogen; patients is the number with that entry. Non-pathogen comments not covered by the explicit exclusion list require review"
+)
+
+relapse_data <- relapse_data |>
+  dplyr::filter(initial_agent_identified) |>
+  data.frame()
+
+relapse_sample <- data.frame(
+  available = nrow(data_analysis),
+  excluded_initial_agent = nrow(data_analysis) - nrow(relapse_data),
+  eligible = nrow(relapse_data),
+  unknown_relapse = sum(is.na(relapse_data$relapse_30D))
+)
+
+kableExtra::kable(
+  relapse_sample,
+  caption = "Relapse analysis cohort. available is the original analysis cohort; excluded_initial_agent counts patients without an identified initial pathogen under the stated rules; eligible is the retained cohort; unknown_relapse counts patients whose relapse status cannot be determined from the existing recurrence and concordance indicators"
+)
+```
+
+### Repeat propensity-score matching
+
+Match the identified-pathogen cohort across all years. Relapse status is not used to select matches. The supplied relapse propensity formula is retained unchanged: it includes diabetes and CRP_max_by100 in addition to the 16 covariates in the main matching formula. These two propensity specifications are intentionally not harmonized in this revision.
+
+```{r}
+match_relapse <- MatchIt::matchit(
+  treatment_under14D ~
+    sex_female +
+    age_by30y +
+    log2_TX_to_infection +
+    urology_acute +
+    stent_in_situ +
+    bph_pca_subvesical_obstruction +
+    urethral_stricture +
+    renofunctional_obstruction +
+    diabetes_severe +
+    diabetes +
+    mra_positive +
+    bad_response_early_worsening +
+    hemoculture_positive +
+    profylaxis +
+    severe_aki +
+    years_from2019 +
+    CRP_entry_by100 +
+    CRP_max_by100,
+  data = relapse_data,
+  method = "nearest",
+  distance = "glm",
+  link = "linear.logit",
+  exact = ~ calendar_period,
+  caliper = 0.2,
+  std.caliper = TRUE,
+  ratio = 1,
+  replace = FALSE,
+  estimand = "ATT"
+)
+
+matched_relapse <- MatchIt::match_data(match_relapse) |>
+  data.frame()
+
+relapse_matching_counts <- data.frame(
+  eligible = nrow(relapse_data),
+  matched = nrow(matched_relapse),
+  unmatched = nrow(relapse_data) - nrow(matched_relapse),
+  pairs = dplyr::n_distinct(matched_relapse$subclass)
+)
+
+kableExtra::kable(
+  relapse_matching_counts,
+  caption = "Matching for the relapse analysis. eligible is the restricted cohort supplied to matching; matched and unmatched count retained and unmatched patients; pairs is the number of matched pairs. Matching used 1:1 nearest neighbours without replacement, a caliper of 0.2 standard deviations of the logit propensity score, and exact matching on calendar period"
+)
+```
+
+Create the 2017+ relapse subset after matching across all years.
+
+```{r}
+relapse_data_2017 <- relapse_data |>
+  dplyr::filter(calendar_year >= 2017) |>
+  data.frame()
+
+matched_relapse_2017 <- matched_relapse |>
+  dplyr::filter(calendar_year >= 2017) |>
+  data.frame()
+
+relapse_matching_counts_2017 <- data.frame(
+  eligible = nrow(relapse_data_2017),
+  matched = nrow(matched_relapse_2017),
+  unmatched = nrow(relapse_data_2017) - nrow(matched_relapse_2017),
+  pairs = dplyr::n_distinct(matched_relapse_2017$subclass)
+)
+kableExtra::kable(
+  relapse_matching_counts_2017,
+  caption = "2017+ relapse cohort after all-years matching. eligible counts patients with an identified initial pathogen before matching; matched and unmatched count patients retained and not retained by the original matching; pairs counts retained matched pairs. No matching is repeated within 2017+"
+)
+```
+
+## Relapse after matching, all
+
+### Balance, all
+
+Check balance
+
+```{r, fig.height=8, fig.width=9}
+#| fig-cap: "Figure 21. All years. Covariate balance before and after matching. Points show absolute standardized mean differences, standardized by the pre-matching short-treatment group in the displayed cohort; colours distinguish before and after matching. The dashed line marks 0.1. Original all-years matching weights are retained; no rematching is performed"
+
+relapse_balance_all <- summary(
+  match_relapse,
+  standardize = TRUE
+)
+
+relapse_before_all <- as.data.frame(
+  relapse_balance_all$sum.all,
+  check.names = FALSE
+) |>
+  tibble::rownames_to_column("covariate") |>
+  janitor::clean_names() |>
+  dplyr::mutate(stage = "Before matching") |>
+  data.frame()
+
+relapse_after_all <- as.data.frame(
+  relapse_balance_all$sum.matched,
+  check.names = FALSE
+) |>
+  tibble::rownames_to_column("covariate") |>
+  janitor::clean_names() |>
+  dplyr::mutate(stage = "After matching") |>
+  data.frame()
+
+relapse_balance_plot_all <- dplyr::bind_rows(
+  relapse_before_all,
+  relapse_after_all
+) |>
+  dplyr::filter(covariate != "distance") |>
+  data.frame()
+
+myplot <- ggplot(
+  relapse_balance_plot_all,
+  aes(abs(std_mean_diff), covariate, colour = stage)
+) +
+  geom_vline(xintercept = 0.1, linetype = "dashed", colour = "grey50") +
+  geom_point() +
+  scale_colour_manual(values = c("#A65F35", "#477DA0")) +
+  labs(x = "Absolute standardized mean difference", y = NULL,
+       colour = NULL)
+plotac <- "fig_relapse_balance_all"
+myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot
+```
+
+### Relapse frequencies
+
+Show relapse counts and proportions in the matched groups.
+
+```{r}
+relapse_counts_all <- matched_relapse |>
+  dplyr::group_by(treatment_group) |>
+  dplyr::summarise(
+    patients = dplyr::n(),
+    known_outcome = sum(!is.na(relapse_30D)),
+    unknown_outcome = sum(is.na(relapse_30D)),
+    relapses = sum(relapse_30D == 1, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  dplyr::mutate(
+    relapse_percent = 100 * relapses / known_outcome
+  ) |>
+  data.frame()
+
+kableExtra::kable(
+  relapse_counts_all,
+  digits = 1,
+  caption = "All years. Relapse within 30 days after therapy completion by sensitivity ATB duration in the matched cohort. patients counts matched patients; known_outcome and unknown_outcome count available and missing relapse outcomes; relapses counts events; relapse_percent is the percentage with relapse among patients with known outcomes"
+)
+```
+
+### KM relapse
+
+Estimate relapse-free survival through day 90 and HRs separately for 30 and 90 days
+
+Patients without relapse are administratively censored at the respective follow-up limit. As in the preceding relapse analysis, a recorded recurrence with a discordant pathogen is not counted as relapse and does not trigger censoring. This uses the recorded recurrent episode and does not reconstruct subsequent infections.
+
+```{r}
+matched_relapse_survival_all <- matched_relapse |>
+  dplyr::mutate(
+    relapse_group = factor(
+      treatment_under14D,
+      levels = c(0, 1),
+      labels = c("Long (>13 days)", "Short (<=13 days)")
+    ),
+    relapse_90D = dplyr::case_when(
+      recurence_till_90D == 0 ~ 0,
+      recurence_till_90D == 1 & hemoculture_agreed == 1 ~ 1,
+      recurence_till_90D == 1 & hemoculture_agreed == 0 ~ 0,
+      TRUE ~ NA_real_
+    ),
+    relapse_time_30D = dplyr::case_when(
+      relapse_30D == 1 ~
+        as.numeric(Infection_to90D_day - EndDate_therapy),
+      relapse_30D == 0 ~ 30,
+      TRUE ~ NA_real_
+    ),
+    relapse_time_90D = dplyr::case_when(
+      relapse_90D == 1 ~
+        as.numeric(Infection_to90D_day - EndDate_therapy),
+      relapse_90D == 0 ~ 90,
+      TRUE ~ NA_real_
+    )
+  ) |>
+  data.frame()
+
+km_relapse_90D_all <- survfit(
+  Surv(relapse_time_90D, relapse_90D) ~ relapse_group,
+  data = matched_relapse_survival_all,
+  conf.type = "log-log"
+)
+```
+
+#### HR, 30D and 90D
+
+Fit each model separately. The 90-day estimate covers the entire period from day 0 to day 90, not only days 31–90.
+
+```{r}
+m_cox_relapse_30D_all <- coxph(
+  Surv(relapse_time_30D, relapse_30D) ~ treatment_under14D,
+  data = matched_relapse_survival_all,
+  cluster = subclass
+)
+
+m_cox_relapse_90D_all <- coxph(
+  Surv(relapse_time_90D, relapse_90D) ~ treatment_under14D,
+  data = matched_relapse_survival_all,
+  cluster = subclass
+)
+
+relapse_cox_summary_30D_all <- summary(m_cox_relapse_30D_all)
+relapse_cox_summary_90D_all <- summary(m_cox_relapse_90D_all)
+
+relapse_hr_30D_all <- data.frame(
+  window = "0–30 days",
+  comparison = "<=13 versus >13 days",
+  n = m_cox_relapse_30D_all$n,
+  events = m_cox_relapse_30D_all$nevent,
+  HR = relapse_cox_summary_30D_all$conf.int[, "exp(coef)"],
+  lower = relapse_cox_summary_30D_all$conf.int[, "lower .95"],
+  upper = relapse_cox_summary_30D_all$conf.int[, "upper .95"],
+  p_value = relapse_cox_summary_30D_all$coefficients[, "Pr(>|z|)"],
+  row.names = NULL
+)
+
+relapse_hr_90D_all <- data.frame(
+  window = "0–90 days",
+  comparison = "<=13 versus >13 days",
+  n = m_cox_relapse_90D_all$n,
+  events = m_cox_relapse_90D_all$nevent,
+  HR = relapse_cox_summary_90D_all$conf.int[, "exp(coef)"],
+  lower = relapse_cox_summary_90D_all$conf.int[, "lower .95"],
+  upper = relapse_cox_summary_90D_all$conf.int[, "upper .95"],
+  p_value = relapse_cox_summary_90D_all$coefficients[, "Pr(>|z|)"],
+  row.names = NULL
+)
+
+relapse_hr_table_all <- dplyr::bind_rows(
+  relapse_hr_30D_all,
+  relapse_hr_90D_all
+) |>
+  data.frame()
+
+kableExtra::kable(
+  relapse_hr_table_all,
+  digits = 3,
+  caption = "All years. Relapse within 30 and 90 days after therapy completion in the matched cohort with an identified initial pathogen. Separate Cox proportional hazards models included treatment group as the sole predictor, with robust variance clustered by matched pair. window identifies the period analysed; comparison gives the direction of the treatment contrast. HR states how many times the relapse hazard changes from >13 to <=13 days of sensitivity ATB treatment; HR >1 indicates a higher hazard with shorter treatment. n is the number analysed; events counts relapses; lower and upper are robust Wald 95% confidence limits; p_value is the two-sided robust Wald p-value. The 30-day analysis is primary and the 90-day analysis secondary; p-values are not adjusted for multiple testing"
+)
+```
+
+#### Pair-stratified log-rank test
+
+Compare the survival curves over the full 90-day follow-up using a log-rank test stratified by matched pair.
+
+```{r}
+logrank_relapse_90D_all <- survdiff(
+  Surv(relapse_time_90D, relapse_90D) ~
+    relapse_group +
+    strata(subclass),
+  data = matched_relapse_survival_all,
+  rho = 0
+)
+
+relapse_logrank_p_all <- pchisq(
+  logrank_relapse_90D_all$chisq,
+  df = 1,
+  lower.tail = FALSE
+)
+
+relapse_logrank_table_all <- data.frame(
+  n = sum(logrank_relapse_90D_all$n),
+  events = sum(logrank_relapse_90D_all$obs),
+  chi_squared = logrank_relapse_90D_all$chisq,
+  df = 1,
+  p_value = relapse_logrank_p_all
+)
+
+kableExtra::kable(
+  relapse_logrank_table_all,
+  digits = 3,
+  caption = "All years. Comparison of relapse-free survival through 90 days after therapy completion using a log-rank test stratified by matched pair. n is the number analysed; events counts relapses; chi_squared is the test statistic; df is its degrees of freedom; p_value tests equality of the survival curves and is distinct from the Cox model Wald p-values"
+)
+```
+
+#### Survival curves
+
+Show the Kaplan–Meier curves, numbers at risk, and hazard ratios for both follow-up windows.
+
+```{r, fig.height=7, fig.width=7}
+#| fig-cap: "Figure 22. All years. Relapse-free survival through 90 days after therapy completion in propensity-score-matched patients with an identified initial pathogen. Relapse requires recurrence with concordant pathogens. Curves are Kaplan–Meier estimates; shaded regions show pointwise 95% confidence intervals based on Greenwood variance with a log-log transformation. Tick marks indicate censoring, the vertical dashed line marks day 30, and the table shows numbers at risk. Displayed HRs compare <=13 with >13 days of sensitivity ATB treatment and come from separate treatment-only Cox models over days 0–30 and 0–90, with matched-pair-clustered robust Wald 95% confidence intervals. The displayed log-rank p-value is stratified by matched pair and covers 90 days"
+
+relapse_p_text_all <- paste0(
+  "Pair-stratified log-rank (90 days) p ",
+  ifelse(
+    relapse_logrank_p_all < 0.001,
+    "< 0.001",
+    paste0("= ", formatC(
+      relapse_logrank_p_all,
+      format = "f",
+      digits = 3
+    ))
+  ),
+  "\n",
+  sprintf(
+    "HR 0–30 days: %.3f (95%% CI %.3f to %.3f)",
+    relapse_hr_30D_all$HR,
+    relapse_hr_30D_all$lower,
+    relapse_hr_30D_all$upper
+  ),
+  "\n",
+  sprintf(
+    "HR 0–90 days: %.3f (95%% CI %.3f to %.3f)",
+    relapse_hr_90D_all$HR,
+    relapse_hr_90D_all$lower,
+    relapse_hr_90D_all$upper
+  )
+)
+
+myplot <- survminer::ggsurvplot(
+  km_relapse_90D_all,
+  data = matched_relapse_survival_all,
+  pval = relapse_p_text_all,
+  pval.coord = c(3, 0.15),
+  pval.size = 3.5,
+  conf.int = TRUE,
+  risk.table = TRUE,
+  risk.table.y.text.col = FALSE,
+  risk.table.fontsize = 3.2,
+  censor.shape = 124,
+  censor.size = 2,
+  palette = c("#477DA0", "#A65F35"),
+  xlab = "Days from the end of therapy",
+  ylab = "Probability of remaining relapse-free",
+  legend.title = "All years. Sensitivity ATB duration",
+  legend.labs = c("Long (>13 days)", "Short (<=13 days)"),
+  break.time.by = 15,
+  xlim = c(0, 90),
+  ggtheme = theme_grey()
+)
+
+myplot$plot <- myplot$plot +
+  geom_vline(
+    xintercept = 30,
+    linetype = "dashed",
+    colour = "grey50"
+  )
+
+myplot <- cowplot::plot_grid(
+  myplot$plot,
+  myplot$table + theme(legend.position = "none"),
+  ncol = 1,
+  rel_heights = c(0.75, 0.25),
+  align = "v",
+  axis = "lr"
+)
+
+plotac <- "fig_relapse_survival_90D_all"
+myplot <- save_plot(myplot, plotac, width = 7, height = 7)
+myplot
+```
+## Relapse after matching, 2017+
+
+### Balance, 2017+
+
+Check balance
+
+```{r, fig.height=8, fig.width=9}
+#| fig-cap: "Figure 23. 2017+. Covariate balance before and after matching. Points show absolute standardized mean differences, standardized by the pre-matching short-treatment group in the displayed cohort; colours distinguish before and after matching. The dashed line marks 0.1. Original all-years matching weights are retained; no rematching is performed"
+
+relapse_keep_2017 <- relapse_data$calendar_year >= 2017
+match_relapse_balance_2017 <- match_relapse
+match_relapse_balance_2017$X <- match_relapse$X[
+  relapse_keep_2017, , drop = FALSE
+]
+match_relapse_balance_2017$treat <- match_relapse$treat[
+  relapse_keep_2017
+]
+match_relapse_balance_2017$weights <- match_relapse$weights[
+  relapse_keep_2017
+]
+match_relapse_balance_2017$distance <- match_relapse$distance[
+  relapse_keep_2017
+]
+match_relapse_balance_2017$discarded <- match_relapse$discarded[
+  relapse_keep_2017
+]
+match_relapse_balance_2017$subclass <- match_relapse$subclass[
+  relapse_keep_2017
+]
+match_relapse_balance_2017$match.matrix <- match_relapse$match.matrix[
+  rownames(match_relapse$match.matrix) %in%
+    names(match_relapse_balance_2017$treat), , drop = FALSE
+]
+
+relapse_balance_2017 <- summary(
+  match_relapse_balance_2017,
+  standardize = TRUE
+)
+
+relapse_before_2017 <- as.data.frame(
+  relapse_balance_2017$sum.all,
+  check.names = FALSE
+) |>
+  tibble::rownames_to_column("covariate") |>
+  janitor::clean_names() |>
+  dplyr::mutate(stage = "Before matching") |>
+  data.frame()
+
+relapse_after_2017 <- as.data.frame(
+  relapse_balance_2017$sum.matched,
+  check.names = FALSE
+) |>
+  tibble::rownames_to_column("covariate") |>
+  janitor::clean_names() |>
+  dplyr::mutate(stage = "After matching") |>
+  data.frame()
+
+relapse_balance_plot_2017 <- dplyr::bind_rows(
+  relapse_before_2017,
+  relapse_after_2017
+) |>
+  dplyr::filter(covariate != "distance") |>
+  data.frame()
+
+myplot <- ggplot(
+  relapse_balance_plot_2017,
+  aes(abs(std_mean_diff), covariate, colour = stage)
+) +
+  geom_vline(xintercept = 0.1, linetype = "dashed", colour = "grey50") +
+  geom_point() +
+  scale_colour_manual(values = c("#A65F35", "#477DA0")) +
+  labs(x = "Absolute standardized mean difference", y = NULL,
+       colour = NULL)
+plotac <- "fig_relapse_balance_2017"
+myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot
+```
+
+### Relapse frequencies
+
+Show relapse counts and proportions in the matched groups.
+
+```{r}
+relapse_counts_2017 <- matched_relapse_2017 |>
+  dplyr::group_by(treatment_group) |>
+  dplyr::summarise(
+    patients = dplyr::n(),
+    known_outcome = sum(!is.na(relapse_30D)),
+    unknown_outcome = sum(is.na(relapse_30D)),
+    relapses = sum(relapse_30D == 1, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  dplyr::mutate(
+    relapse_percent = 100 * relapses / known_outcome
+  ) |>
+  data.frame()
+
+kableExtra::kable(
+  relapse_counts_2017,
+  digits = 1,
+  caption = "2017+. Relapse within 30 days after therapy completion by sensitivity ATB duration in the matched cohort. patients counts matched patients; known_outcome and unknown_outcome count available and missing relapse outcomes; relapses counts events; relapse_percent is the percentage with relapse among patients with known outcomes"
+)
+```
+
+### KM relapse
+
+Estimate relapse-free survival through day 90 and HRs separately for 30 and 90 days
+
+Patients without relapse are administratively censored at the respective follow-up limit. As in the preceding relapse analysis, a recorded recurrence with a discordant pathogen is not counted as relapse and does not trigger censoring. This uses the recorded recurrent episode and does not reconstruct subsequent infections.
+
+```{r}
+matched_relapse_survival_2017 <- matched_relapse_2017 |>
+  dplyr::mutate(
+    relapse_group = factor(
+      treatment_under14D,
+      levels = c(0, 1),
+      labels = c("Long (>13 days)", "Short (<=13 days)")
+    ),
+    relapse_90D = dplyr::case_when(
+      recurence_till_90D == 0 ~ 0,
+      recurence_till_90D == 1 & hemoculture_agreed == 1 ~ 1,
+      recurence_till_90D == 1 & hemoculture_agreed == 0 ~ 0,
+      TRUE ~ NA_real_
+    ),
+    relapse_time_30D = dplyr::case_when(
+      relapse_30D == 1 ~
+        as.numeric(Infection_to90D_day - EndDate_therapy),
+      relapse_30D == 0 ~ 30,
+      TRUE ~ NA_real_
+    ),
+    relapse_time_90D = dplyr::case_when(
+      relapse_90D == 1 ~
+        as.numeric(Infection_to90D_day - EndDate_therapy),
+      relapse_90D == 0 ~ 90,
+      TRUE ~ NA_real_
+    )
+  ) |>
+  data.frame()
+
+km_relapse_90D_2017 <- survfit(
+  Surv(relapse_time_90D, relapse_90D) ~ relapse_group,
+  data = matched_relapse_survival_2017,
+  conf.type = "log-log"
+)
+```
+
+#### HR, 30D and 90D
+
+Fit each model separately. The 90-day estimate covers the entire period from day 0 to day 90, not only days 31–90.
+
+```{r}
+m_cox_relapse_30D_2017 <- coxph(
+  Surv(relapse_time_30D, relapse_30D) ~ treatment_under14D,
+  data = matched_relapse_survival_2017,
+  cluster = subclass
+)
+
+m_cox_relapse_90D_2017 <- coxph(
+  Surv(relapse_time_90D, relapse_90D) ~ treatment_under14D,
+  data = matched_relapse_survival_2017,
+  cluster = subclass
+)
+
+relapse_cox_summary_30D_2017 <- summary(m_cox_relapse_30D_2017)
+relapse_cox_summary_90D_2017 <- summary(m_cox_relapse_90D_2017)
+
+relapse_hr_30D_2017 <- data.frame(
+  window = "0–30 days",
+  comparison = "<=13 versus >13 days",
+  n = m_cox_relapse_30D_2017$n,
+  events = m_cox_relapse_30D_2017$nevent,
+  HR = relapse_cox_summary_30D_2017$conf.int[, "exp(coef)"],
+  lower = relapse_cox_summary_30D_2017$conf.int[, "lower .95"],
+  upper = relapse_cox_summary_30D_2017$conf.int[, "upper .95"],
+  p_value = relapse_cox_summary_30D_2017$coefficients[, "Pr(>|z|)"],
+  row.names = NULL
+)
+
+relapse_hr_90D_2017 <- data.frame(
+  window = "0–90 days",
+  comparison = "<=13 versus >13 days",
+  n = m_cox_relapse_90D_2017$n,
+  events = m_cox_relapse_90D_2017$nevent,
+  HR = relapse_cox_summary_90D_2017$conf.int[, "exp(coef)"],
+  lower = relapse_cox_summary_90D_2017$conf.int[, "lower .95"],
+  upper = relapse_cox_summary_90D_2017$conf.int[, "upper .95"],
+  p_value = relapse_cox_summary_90D_2017$coefficients[, "Pr(>|z|)"],
+  row.names = NULL
+)
+
+relapse_hr_table_2017 <- dplyr::bind_rows(
+  relapse_hr_30D_2017,
+  relapse_hr_90D_2017
+) |>
+  data.frame()
+
+kableExtra::kable(
+  relapse_hr_table_2017,
+  digits = 3,
+  caption = "2017+. Relapse within 30 and 90 days after therapy completion in the matched cohort with an identified initial pathogen. Separate Cox proportional hazards models included treatment group as the sole predictor, with robust variance clustered by matched pair. window identifies the period analysed; comparison gives the direction of the treatment contrast. HR states how many times the relapse hazard changes from >13 to <=13 days of sensitivity ATB treatment; HR >1 indicates a higher hazard with shorter treatment. n is the number analysed; events counts relapses; lower and upper are robust Wald 95% confidence limits; p_value is the two-sided robust Wald p-value. The 30-day analysis is primary and the 90-day analysis secondary; p-values are not adjusted for multiple testing"
+)
+```
+
+#### Pair-stratified log-rank test
+
+Compare the survival curves over the full 90-day follow-up using a log-rank test stratified by matched pair.
+
+```{r}
+logrank_relapse_90D_2017 <- survdiff(
+  Surv(relapse_time_90D, relapse_90D) ~
+    relapse_group +
+    strata(subclass),
+  data = matched_relapse_survival_2017,
+  rho = 0
+)
+
+relapse_logrank_p_2017 <- pchisq(
+  logrank_relapse_90D_2017$chisq,
+  df = 1,
+  lower.tail = FALSE
+)
+
+relapse_logrank_table_2017 <- data.frame(
+  n = sum(logrank_relapse_90D_2017$n),
+  events = sum(logrank_relapse_90D_2017$obs),
+  chi_squared = logrank_relapse_90D_2017$chisq,
+  df = 1,
+  p_value = relapse_logrank_p_2017
+)
+
+kableExtra::kable(
+  relapse_logrank_table_2017,
+  digits = 3,
+  caption = "2017+. Comparison of relapse-free survival through 90 days after therapy completion using a log-rank test stratified by matched pair. n is the number analysed; events counts relapses; chi_squared is the test statistic; df is its degrees of freedom; p_value tests equality of the survival curves and is distinct from the Cox model Wald p-values"
+)
+```
+
+#### Survival curves
+
+Show the Kaplan–Meier curves, numbers at risk, and hazard ratios for both follow-up windows.
+
+```{r, fig.height=7, fig.width=7}
+#| fig-cap: "Figure 24. 2017+. Relapse-free survival through 90 days after therapy completion in propensity-score-matched patients with an identified initial pathogen. Relapse requires recurrence with concordant pathogens. Curves are Kaplan–Meier estimates; shaded regions show pointwise 95% confidence intervals based on Greenwood variance with a log-log transformation. Tick marks indicate censoring, the vertical dashed line marks day 30, and the table shows numbers at risk. Displayed HRs compare <=13 with >13 days of sensitivity ATB treatment and come from separate treatment-only Cox models over days 0–30 and 0–90, with matched-pair-clustered robust Wald 95% confidence intervals. The displayed log-rank p-value is stratified by matched pair and covers 90 days"
+
+relapse_p_text_2017 <- paste0(
+  "Pair-stratified log-rank (90 days) p ",
+  ifelse(
+    relapse_logrank_p_2017 < 0.001,
+    "< 0.001",
+    paste0("= ", formatC(
+      relapse_logrank_p_2017,
+      format = "f",
+      digits = 3
+    ))
+  ),
+  "\n",
+  sprintf(
+    "HR 0–30 days: %.3f (95%% CI %.3f to %.3f)",
+    relapse_hr_30D_2017$HR,
+    relapse_hr_30D_2017$lower,
+    relapse_hr_30D_2017$upper
+  ),
+  "\n",
+  sprintf(
+    "HR 0–90 days: %.3f (95%% CI %.3f to %.3f)",
+    relapse_hr_90D_2017$HR,
+    relapse_hr_90D_2017$lower,
+    relapse_hr_90D_2017$upper
+  )
+)
+
+myplot <- survminer::ggsurvplot(
+  km_relapse_90D_2017,
+  data = matched_relapse_survival_2017,
+  pval = relapse_p_text_2017,
+  pval.coord = c(3, 0.15),
+  pval.size = 3.5,
+  conf.int = TRUE,
+  risk.table = TRUE,
+  risk.table.y.text.col = FALSE,
+  risk.table.fontsize = 3.2,
+  censor.shape = 124,
+  censor.size = 2,
+  palette = c("#477DA0", "#A65F35"),
+  xlab = "Days from the end of therapy",
+  ylab = "Probability of remaining relapse-free",
+  legend.title = "2017+. Sensitivity ATB duration",
+  legend.labs = c("Long (>13 days)", "Short (<=13 days)"),
+  break.time.by = 15,
+  xlim = c(0, 90),
+  ggtheme = theme_grey()
+)
+
+myplot$plot <- myplot$plot +
+  geom_vline(
+    xintercept = 30,
+    linetype = "dashed",
+    colour = "grey50"
+  )
+
+myplot <- cowplot::plot_grid(
+  myplot$plot,
+  myplot$table + theme(legend.position = "none"),
+  ncol = 1,
+  rel_heights = c(0.75, 0.25),
+  align = "v",
+  axis = "lr"
+)
+
+plotac <- "fig_relapse_survival_90D_2017"
+myplot <- save_plot(myplot, plotac, width = 7, height = 7)
+myplot
+```
+
+
+# Secondary CCW analysis
+
+```{r}
+ccw_input <- data_analysis
+ccw_outcomes <- c("recurence_till_1M", "recurence_till_90D")
+
+ccw_baseline_vars <- c(
+  "sex_female", "age_by30y", "log2_TX_to_infection",
+  "diabetes_severe", "mra_positive", "hemoculture_positive",
+  "profylaxis", "severe_aki", "CRP_entry_by100",
+  "past_urol_instrumentation", "immunosuppression_regimen",
+  "depletion_induction_or_rejection_treatment_6M", "calendar_period"
+)
+ccw_bm_br_vars <- c(
+  "fever_before_planned_ATB_stop",
+  "clinical_worsening_before_planned_ATB_stop",
+  "urine_findings_worsening_before_planned_ATB_stop",
+  "ATB_extension_CRP_dynamics",
+  "ATB_extension_other_reason",
+  "ATB_extension_urologic_procedure"
+)
+ccw_variables <- c(
+  "ID", "ATB_sensitivity_duration", "treatment_under14D",
+  ccw_baseline_vars, ccw_bm_br_vars,
+  ccw_outcomes
+)
+
+ccw_missing <- ccw_input |>
+  dplyr::summarise(
+    dplyr::across(
+      all_of(ccw_variables),
+      ~ sum(is.na(.x))
+    )
+  ) |>
+  tidyr::pivot_longer(
+    cols = everything(),
+    names_to = "variable",
+    values_to = "missing_n"
+  ) |>
+  dplyr::mutate(
+    missing_percent = 100 * missing_n / nrow(ccw_input)
+  ) |>
+  dplyr::arrange(desc(missing_n)) |>
+  data.frame()
+kableExtra::kable(
+  ccw_missing,
+  digits = 1,
+  caption = "Missing values in variables used by the CCW analysis. missing_n is the number of patients with NA; missing_percent is their percentage of the analysed cohort. Counts can overlap across variables. The agreed exclusion for missing entry CRP has already been applied"
+)
+
+ccw_sample <- ccw_input |>
+  dplyr::summarise(
+    patients_available = nrow(data_analysis),
+    excluded_missing_CRP = sum(is.na(data_analysis$CRP_entry)),
+    patients_included = dplyr::n(),
+    patients_with_any_NA = sum(dplyr::if_any(
+      all_of(ccw_variables),
+      is.na
+    ))
+  ) |>
+  dplyr::mutate(
+    patients_without_NA = patients_included - patients_with_any_NA
+  ) |>
+  data.frame()
+kableExtra::kable(
+  ccw_sample,
+  caption = "Analysis sample. patients_available counts the original cohort; excluded_missing_CRP counts patients excluded for missing entry CRP; patients_included counts those retained. patients_with_any_NA and patients_without_NA count retained patients with and without missing analysis inputs, respectively"
+)
+```
+
+
+Calculate weighted recurrence risks
+
+```{r}
+ccw_risks <- function(endpoints) {
+  endpoints |>
+    dplyr::select(
+      strategy,
+      weight,
+      dplyr::all_of(ccw_outcomes)
+    ) |>
+    tidyr::pivot_longer(
+      cols = dplyr::all_of(ccw_outcomes),
+      names_to = "outcome",
+      values_to = "event"
+    ) |>
+    dplyr::group_by(
+      outcome,
+      strategy
+    ) |>
+    dplyr::summarise(
+      risk = weighted.mean(event, weight),
+      .groups = "drop"
+    ) |>
+    tidyr::pivot_wider(
+      names_from = strategy,
+      values_from = risk
+    ) |>
+    dplyr::mutate(
+      risk_difference = short - long,
+      risk_ratio = short / long
+    ) |>
+    data.frame()
+}
+```
+
+## Stopping by day 13
+
+Model stopping by day 13 using the baseline and BM–BR covariates
+
+```{r}
+m_stop_by13 <- glm(
+  treatment_under14D ~
+    sex_female +
+    age_by30y +
+    log2_TX_to_infection +
+    diabetes_severe +
+    mra_positive +
+    hemoculture_positive +
+    profylaxis +
+    severe_aki +
+    CRP_entry_by100 +
+    past_urol_instrumentation +
+    immunosuppression_regimen +
+    depletion_induction_or_rejection_treatment_6M +
+    calendar_period +
+    fever_before_planned_ATB_stop +
+    clinical_worsening_before_planned_ATB_stop +
+    urine_findings_worsening_before_planned_ATB_stop +
+    ATB_extension_CRP_dynamics +
+    ATB_extension_other_reason +
+    ATB_extension_urologic_procedure,
+  data = ccw_input,
+  family = binomial(link = "logit")
+)
+summary(m_stop_by13)
+kableExtra::kable(
+  data.frame(
+    supplied = nrow(ccw_input),
+    used = nobs(m_stop_by13),
+    omitted = nrow(ccw_input) - nobs(m_stop_by13)
+  ),
+  caption = "Two-period stopping model: observations used. supplied and used count patients available and used in fitting; omitted is their difference"
+)
+sjPlot::tab_model(
+  m_stop_by13,
+  show.ci = 0.95,
+  show.p = TRUE,
+  show.se = FALSE,
+  digits = 3,
+  title = "Probability model for stopping sensitivity ATB treatment by day 13. OR states how many times the odds of stopping change per one modelled unit increase or a change from 0 to 1; categorical effects are relative to the reference level. Intervals are 95% profile-likelihood limits and p-values are Wald tests"
+)
+```
+
+## Weight the two periods
+
+Calculate inverse-probability weights
+
+```{r}
+ccw_period_data <- ccw_input
+ccw_period_data$p_short <- as.numeric(predict(
+  m_stop_by13,
+  newdata = ccw_period_data,
+  type = "response"
+))
+ccw_endpoints_period <- ccw_period_data |>
+  dplyr::mutate(
+    strategy = dplyr::if_else(
+      treatment_under14D == 1,
+      "short",
+      "long"
+    ),
+    weight = dplyr::if_else(
+      treatment_under14D == 1,
+      1 / p_short,
+      1 / (1 - p_short)
+    )
+  ) |>
+  data.frame()
+```
+Check weights and effective sample sizes
+
+```{r}
+weight_issues_period <- ccw_endpoints_period |>
+  dplyr::filter(!is.finite(weight)) |>
+  dplyr::mutate(
+    issue = dplyr::case_when(
+      is.na(p_short) ~ "Missing stopping prediction",
+      TRUE ~ "Non-finite inverse-probability weight"
+    )
+  ) |>
+  dplyr::select(
+    ID,
+    strategy,
+    ATB_sensitivity_duration,
+    CRP_entry_by100,
+    p_short,
+    weight,
+    issue
+  ) |>
+  data.frame()
+kableExtra::kable(
+  weight_issues_period,
+  digits = 3,
+  caption = "Two-period approximation: patients with unavailable or infinite weights. ID is the analysis identifier; strategy is short or long treatment; ATB_sensitivity_duration is treatment duration in days; CRP_entry_by100 is entry CRP divided by 100; p_short is the predicted probability of stopping by day 13; weight is the final inverse-probability weight. issue distinguishes a missing prediction from another non-finite weight. An empty table means no such issues"
+)
+
+weight_summary_period <- ccw_endpoints_period |>
+  dplyr::group_by(strategy) |>
+  dplyr::summarise(
+    patients = dplyr::n(),
+    nonfinite_weights = sum(!is.finite(weight)),
+    median_weight = median(weight[is.finite(weight)]),
+    p99_weight = quantile(
+      weight[is.finite(weight)], 0.99, na.rm = TRUE
+    ),
+    max_weight = quantile(
+      weight[is.finite(weight)], 1, na.rm = TRUE
+    ),
+    ESS = sum(weight)^2 / sum(weight^2),
+    .groups = "drop"
+  ) |>
+  data.frame()
+kableExtra::kable(
+  weight_summary_period,
+  digits = 3,
+  caption = "Two-period approximation: weight diagnostics. patients counts retained patients by strategy; nonfinite_weights counts undefined or infinite weights; median_weight, p99_weight and max_weight describe finite weights only. ESS is the squared sum of all weights divided by their sum of squares and is undefined if any weight is missing or infinite. No patient is excluded by this diagnostic summary"
+)
+```
+
+## Weighted recurrence risks
+
+Show weighted risks
+
+```{r}
+ccw_point_period <- ccw_risks(ccw_endpoints_period)
+kableExtra::kable(
+  ccw_point_period,
+  digits = 3,
+  caption = "Two-period approximation: recurrence after therapy completion. outcome identifies the 30-day or 90-day window; short and long are weighted risks after <=13 and >13 days of sensitivity ATB treatment. risk_difference is short minus long; risk_ratio is short divided by long"
+)
+```
+
+## Patient bootstrap
+
+Refit the stopping model and calculate risks in each patient resample
+
+```{r}
+bootstrap_ccw_period <- function() {
+  sampled <- sample.int(nrow(ccw_input), replace = TRUE)
+  boot_data <- ccw_input[sampled, , drop = FALSE]
+  boot_data$ID <- as.character(seq_len(nrow(boot_data)))
+  m_stop_boot <- update(m_stop_by13, data = boot_data)
+  if (!m_stop_boot$converged) {
+    stop("Period-level stopping model did not converge in this replicate.")
+  }
+  boot_data$p_short <- predict(
+    m_stop_boot,
+    newdata = boot_data,
+    type = "response"
+  )
+  endpoints <- boot_data |>
+    dplyr::mutate(
+      strategy = dplyr::if_else(
+        treatment_under14D == 1,
+        "short",
+        "long"
+      ),
+      weight = dplyr::if_else(
+        treatment_under14D == 1,
+        1 / p_short,
+        1 / (1 - p_short)
+      )
+    ) |>
+    data.frame()
+  ccw_risks(endpoints)
+}
+```
+Run 500 patient bootstrap replicates, reusing the existing cache if present
+
+```{r}
+modelac <- "ccw_results_v2_d13minusVSsd14plus"
+run2(
+  modelac,
+  expr = {
+    set.seed(seeding)
+    purrr::map(seq_len(500), function(replicate_id) {
+      tryCatch(
+        list(
+          result = bootstrap_ccw_period(),
+          error = NA_character_
+        ),
+        error = function(e) list(
+          result = ccw_point_period |>
+            dplyr::mutate(
+              dplyr::across(
+                c(short, long, risk_difference, risk_ratio),
+                ~ NA_real_
+              )
+            ) |>
+            data.frame(),
+          error = conditionMessage(e)
+        )
+      )
+    })
+  }
+)
+ccw_bootstrap_period <- get(modelac)
+bootstrap_errors_period <- purrr::map_chr(
+  ccw_bootstrap_period,
+  "error"
+)
+bootstrap_status_period <- data.frame(
+  requested = length(ccw_bootstrap_period),
+  failed = sum(!is.na(bootstrap_errors_period))
+)
+kableExtra::kable(
+  bootstrap_status_period,
+  caption = "Two-period approximation: bootstrap execution. requested counts patient resamples; failed counts model-fitting errors or nonconvergence. Non-finite risk estimates are accounted for in valid_replicates in the results table"
+)
+unique(bootstrap_errors_period[!is.na(bootstrap_errors_period)])
+bootstrap_results_period <- purrr::map_dfr(
+  ccw_bootstrap_period,
+  "result",
+  .id = "replicate"
+) |>
+  data.frame()
+```
+Show estimates and percentile 95% confidence intervals
+
+```{r}
+bootstrap_limits_period <- bootstrap_results_period |>
+  tidyr::pivot_longer(
+    cols = c(short, long, risk_difference, risk_ratio),
+    names_to = "estimand",
+    values_to = "estimate"
+  ) |>
+  dplyr::group_by(
+    outcome,
+    estimand
+  ) |>
+  dplyr::summarise(
+    valid_replicates = sum(is.finite(estimate)),
+    lower = quantile(estimate[is.finite(estimate)], 0.025, na.rm = TRUE),
+    upper = quantile(estimate[is.finite(estimate)], 0.975, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  data.frame()
+ccw_table_period <- ccw_point_period |>
+  tidyr::pivot_longer(
+    cols = c(short, long, risk_difference, risk_ratio),
+    names_to = "estimand",
+    values_to = "estimate"
+  ) |>
+  dplyr::left_join(
+    bootstrap_limits_period,
+    by = c("outcome", "estimand")
+  ) |>
+  dplyr::mutate(
+    lower = dplyr::if_else(is.finite(estimate), lower, NA_real_),
+    upper = dplyr::if_else(is.finite(estimate), upper, NA_real_)
+  ) |>
+  data.frame()
+kableExtra::kable(
+  ccw_table_period,
+  digits = 3,
+  caption = "Two-period approximation: recurrence estimates after therapy completion. outcome identifies the 30-day or 90-day window; estimand identifies the short-treatment risk, long-treatment risk, risk difference (short minus long) or risk ratio (short divided by long). estimate is the point estimate; lower and upper are patient-bootstrap percentile 95% confidence limits. valid_replicates counts finite bootstrap estimates contributing to each interval"
+)
+```
+
+# Secondary CCW analysis, 2017+
+
+As above but only using data 2017+
+
+```{r}
+ccw_input <- data_analysis |> dplyr::filter(calendar_year >= 2017)
+
+ccw_outcomes <- c("recurence_till_1M", "recurence_till_90D")
+
+ccw_baseline_vars <- c(
+  "sex_female", "age_by30y", "log2_TX_to_infection",
+  "diabetes_severe", "mra_positive", "hemoculture_positive",
+  "profylaxis", "severe_aki", "CRP_entry_by100",
+  "past_urol_instrumentation", "immunosuppression_regimen",
+  "depletion_induction_or_rejection_treatment_6M", "calendar_period"
+)
+ccw_bm_br_vars <- c(
+  "fever_before_planned_ATB_stop",
+  "clinical_worsening_before_planned_ATB_stop",
+  "urine_findings_worsening_before_planned_ATB_stop",
+  "ATB_extension_CRP_dynamics",
+  "ATB_extension_other_reason",
+  "ATB_extension_urologic_procedure"
+)
+ccw_variables <- c(
+  "ID", "ATB_sensitivity_duration", "treatment_under14D",
+  ccw_baseline_vars, ccw_bm_br_vars,
+  ccw_outcomes
+)
+
+ccw_missing <- ccw_input |>
+  dplyr::summarise(
+    dplyr::across(
+      all_of(ccw_variables),
+      ~ sum(is.na(.x))
+    )
+  ) |>
+  tidyr::pivot_longer(
+    cols = everything(),
+    names_to = "variable",
+    values_to = "missing_n"
+  ) |>
+  dplyr::mutate(
+    missing_percent = 100 * missing_n / nrow(ccw_input)
+  ) |>
+  dplyr::arrange(desc(missing_n)) |>
+  data.frame()
+kableExtra::kable(
+  ccw_missing,
+  digits = 1,
+  caption = "Missing values in variables used by the CCW analysis. missing_n is the number of patients with NA; missing_percent is their percentage of the analysed cohort. Counts can overlap across variables. The agreed exclusion for missing entry CRP has already been applied"
+)
+
+ccw_sample <- ccw_input |>
+  dplyr::summarise(
+    patients_available = sum(lubridate::year(data_analysis$T0) >= 2017),
+    excluded_missing_CRP = sum(
+      lubridate::year(data_analysis$T0) >= 2017 & is.na(data_analysis$CRP_entry)
+    ),
+    patients_included = dplyr::n(),
+    patients_with_any_NA = sum(dplyr::if_any(
+      all_of(ccw_variables),
+      is.na
+    ))
+  ) |>
+  dplyr::mutate(
+    patients_without_NA = patients_included - patients_with_any_NA
+  ) |>
+  data.frame()
+kableExtra::kable(
+  ccw_sample,
+  caption = "Analysis sample. patients_available counts the original 2017+ cohort; excluded_missing_CRP counts patients excluded for missing entry CRP; patients_included counts those retained. patients_with_any_NA and patients_without_NA count retained patients with and without missing analysis inputs, respectively"
+)
+```
+
+
+## Stopping by day 13
+
+Model stopping by day 13 using the baseline and BM–BR covariates
+
+```{r}
+m_stop_by13 <- glm(
+  treatment_under14D ~
+    sex_female +
+    age_by30y +
+    log2_TX_to_infection +
+    diabetes_severe +
+    mra_positive +
+    hemoculture_positive +
+    profylaxis +
+    severe_aki +
+    CRP_entry_by100 +
+    past_urol_instrumentation +
+    immunosuppression_regimen +
+    depletion_induction_or_rejection_treatment_6M +
+    calendar_period +
+    fever_before_planned_ATB_stop +
+    clinical_worsening_before_planned_ATB_stop +
+    urine_findings_worsening_before_planned_ATB_stop +
+    ATB_extension_CRP_dynamics +
+    ATB_extension_other_reason +
+    ATB_extension_urologic_procedure,
+  data = ccw_input,
+  family = binomial(link = "logit")
+)
+summary(m_stop_by13)
+
+kableExtra::kable(
+  data.frame(
+    supplied = nrow(ccw_input),
+    used = nobs(m_stop_by13),
+    omitted = nrow(ccw_input) - nobs(m_stop_by13)
+  ),
+  caption = "Two-period stopping model: observations used. supplied and used count patients available and used in fitting; omitted is their difference"
+)
+sjPlot::tab_model(
+  m_stop_by13,
+  show.ci = 0.95,
+  show.p = TRUE,
+  show.se = FALSE,
+  digits = 3,
+  title = "Probability model for stopping sensitivity ATB treatment by day 13. OR states how many times the odds of stopping change per one modelled unit increase or a change from 0 to 1; categorical effects are relative to the reference level. Intervals are 95% profile-likelihood limits and p-values are Wald tests"
+)
+```
+
+## Weight the two periods
+
+Calculate inverse-probability weights
+
+```{r}
+ccw_period_data <- ccw_input
+
+ccw_period_data$p_short <- as.numeric(predict(
+  m_stop_by13,
+  newdata = ccw_period_data,
+  type = "response"
+))
+ccw_endpoints_period <- ccw_period_data |>
+  dplyr::mutate(
+    strategy = dplyr::if_else(
+      treatment_under14D == 1,
+      "short",
+      "long"
+    ),
+    weight = dplyr::if_else(
+      treatment_under14D == 1,
+      1 / p_short,
+      1 / (1 - p_short)
+    )
+  ) |>
+  data.frame()
+```
+Check weights and effective sample sizes
+
+```{r}
+weight_issues_period <- ccw_endpoints_period |>
+  dplyr::filter(!is.finite(weight)) |>
+  dplyr::mutate(
+    issue = dplyr::case_when(
+      is.na(p_short) ~ "Missing stopping prediction",
+      TRUE ~ "Non-finite inverse-probability weight"
+    )
+  ) |>
+  dplyr::select(
+    ID,
+    strategy,
+    ATB_sensitivity_duration,
+    CRP_entry_by100,
+    p_short,
+    weight,
+    issue
+  ) |>
+  data.frame()
+kableExtra::kable(
+  weight_issues_period,
+  digits = 3,
+  caption = "Two-period approximation: patients with unavailable or infinite weights. ID is the analysis identifier; strategy is short or long treatment; ATB_sensitivity_duration is treatment duration in days; CRP_entry_by100 is entry CRP divided by 100; p_short is the predicted probability of stopping by day 13; weight is the final inverse-probability weight. issue distinguishes a missing prediction from another non-finite weight. An empty table means no such issues"
+)
+
+weight_summary_period <- ccw_endpoints_period |>
+  dplyr::group_by(strategy) |>
+  dplyr::summarise(
+    patients = dplyr::n(),
+    nonfinite_weights = sum(!is.finite(weight)),
+    median_weight = median(weight[is.finite(weight)]),
+    p99_weight = quantile(
+      weight[is.finite(weight)], 0.99, na.rm = TRUE
+    ),
+    max_weight = quantile(
+      weight[is.finite(weight)], 1, na.rm = TRUE
+    ),
+    ESS = sum(weight)^2 / sum(weight^2),
+    .groups = "drop"
+  ) |>
+  data.frame()
+kableExtra::kable(
+  weight_summary_period,
+  digits = 3,
+  caption = "Two-period approximation: weight diagnostics. patients counts retained patients by strategy; nonfinite_weights counts undefined or infinite weights; median_weight, p99_weight and max_weight describe finite weights only. ESS is the squared sum of all weights divided by their sum of squares and is undefined if any weight is missing or infinite. No patient is excluded by this diagnostic summary"
+)
+```
+
+## Weighted recurrence risks
+
+Show weighted risks
+
+```{r}
+ccw_point_period <- ccw_risks(ccw_endpoints_period)
+
+kableExtra::kable(
+  ccw_point_period,
+  digits = 3,
+  caption = "Two-period approximation: recurrence after therapy completion. outcome identifies the 30-day or 90-day window; short and long are weighted risks after <=13 and >13 days of sensitivity ATB treatment. risk_difference is short minus long; risk_ratio is short divided by long"
+)
+```
+
+## Patient bootstrap
+
+Refit the stopping model and calculate risks in each patient resample
+
+```{r}
+bootstrap_ccw_period <- function() {
+  sampled <- sample.int(nrow(ccw_input), replace = TRUE)
+  boot_data <- ccw_input[sampled, , drop = FALSE]
+  boot_data$ID <- as.character(seq_len(nrow(boot_data)))
+  m_stop_boot <- update(m_stop_by13, data = boot_data)
+  if (!m_stop_boot$converged) {
+    stop("Period-level stopping model did not converge in this replicate.")
+  }
+  boot_data$p_short <- predict(
+    m_stop_boot,
+    newdata = boot_data,
+    type = "response"
+  )
+  endpoints <- boot_data |>
+    dplyr::mutate(
+      strategy = dplyr::if_else(
+        treatment_under14D == 1,
+        "short",
+        "long"
+      ),
+      weight = dplyr::if_else(
+        treatment_under14D == 1,
+        1 / p_short,
+        1 / (1 - p_short)
+      )
+    ) |>
+    data.frame()
+  ccw_risks(endpoints)
+}
+```
+Run 500 patient bootstrap replicates, reusing the existing cache if present
+
+```{r}
+modelac <- "ccw_results_v2_d13minusVSsd14plus_2017plus"
+
+run2(
+  modelac,
+  expr = {
+    set.seed(seeding)
+    purrr::map(seq_len(500), function(replicate_id) {
+      tryCatch(
+        list(
+          result = bootstrap_ccw_period(),
+          error = NA_character_
+        ),
+        error = function(e) list(
+          result = ccw_point_period |>
+            dplyr::mutate(
+              dplyr::across(
+                c(short, long, risk_difference, risk_ratio),
+                ~ NA_real_
+              )
+            ) |>
+            data.frame(),
+          error = conditionMessage(e)
+        )
+      )
+    })
+  }
+)
+
+ccw_bootstrap_period <- get(modelac)
+
+bootstrap_errors_period <- purrr::map_chr(
+  ccw_bootstrap_period,
+  "error"
+)
+bootstrap_status_period <- data.frame(
+  requested = length(ccw_bootstrap_period),
+  failed = sum(!is.na(bootstrap_errors_period))
+)
+kableExtra::kable(
+  bootstrap_status_period,
+  caption = "Two-period approximation: bootstrap execution. requested counts patient resamples; failed counts model-fitting errors or nonconvergence. Non-finite risk estimates are accounted for in valid_replicates in the results table"
+)
+
+unique(bootstrap_errors_period[!is.na(bootstrap_errors_period)])
+
+bootstrap_results_period <- purrr::map_dfr(
+  ccw_bootstrap_period,
+  "result",
+  .id = "replicate"
+) |>
+  data.frame()
+```
+S
+how estimates and percentile 95% confidence intervals
+
+```{r}
+bootstrap_limits_period <- bootstrap_results_period |>
+  tidyr::pivot_longer(
+    cols = c(short, long, risk_difference, risk_ratio),
+    names_to = "estimand",
+    values_to = "estimate"
+  ) |>
+  dplyr::group_by(
+    outcome,
+    estimand
+  ) |>
+  dplyr::summarise(
+    valid_replicates = sum(is.finite(estimate)),
+    lower = quantile(estimate[is.finite(estimate)], 0.025, na.rm = TRUE),
+    upper = quantile(estimate[is.finite(estimate)], 0.975, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  data.frame()
+ccw_table_period <- ccw_point_period |>
+  tidyr::pivot_longer(
+    cols = c(short, long, risk_difference, risk_ratio),
+    names_to = "estimand",
+    values_to = "estimate"
+  ) |>
+  dplyr::left_join(
+    bootstrap_limits_period,
+    by = c("outcome", "estimand")
+  ) |>
+  dplyr::mutate(
+    lower = dplyr::if_else(is.finite(estimate), lower, NA_real_),
+    upper = dplyr::if_else(is.finite(estimate), upper, NA_real_)
+  ) |>
+  data.frame()
+kableExtra::kable(
+  ccw_table_period,
+  digits = 3,
+  caption = "Two-period approximation: recurrence estimates after therapy completion. outcome identifies the 30-day or 90-day window; estimand identifies the short-treatment risk, long-treatment risk, risk difference (short minus long) or risk ratio (short divided by long). estimate is the point estimate; lower and upper are patient-bootstrap percentile 95% confidence limits. valid_replicates counts finite bootstrap estimates contributing to each interval"
+)
+```
+
+# Reproducibility
+
+```{r}
+sessionInfo()
+```
+
+
