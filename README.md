@@ -29,7 +29,7 @@ Original **GitHub repository**: TO BE ADDED
 
 The repository is organized as follows:
 
-- `quarto/`: Quarto analysis script and report source
+- `722_code01.qmd`: Quarto analysis script and report source
 - `r/initiation.R`: Initialization script for loading packages, functions and preparing the analysis dataset
 - `r/functions/`: Supporting R functions
 - `data/data_analysis.rds`: Analysis dataset with R variable classes preserved
