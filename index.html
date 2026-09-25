@@ -3260,16 +3260,14 @@ text-align: justify;
 <p>Chroma A., Petr V., Tichanek F., Schmalz M., Jakubov K., D’Angelo M., Viklicky O., Zahradka I. Short versus prolonged antibiotic therapy for complicated urinary tract infection in kidney transplant recipients: a target trial emulation. Publication details and DOI: TO BE ADDED.</p>
 </blockquote>
 <hr>
-<p>Statistical <strong>report</strong>: TO BE ADDED</p>
-<p>Original <strong>GitHub repository</strong>: TO BE ADDED</p>
-<p><strong>Zenodo data and code archive</strong>: TO BE ADDED</p>
+<p>Statistical <a href="https://filip-tichanek.github.io/uti_atb_dur/"><strong>report</strong></a>: https://filip-tichanek.github.io/uti_atb_dur/</p>
+<p>Original <a href="https://github.com/filip-tichanek/uti_atb_dur"><strong>GitHub repository</strong></a>: https://github.com/filip-tichanek/uti_atb_dur</p>
 <p>The repository is organized as follows:</p>
 <ul>
 <li><code>722_code01.qmd</code>: Quarto analysis script and report source</li>
 <li><code>r/initiation.R</code>: Initialization script for loading packages, functions and preparing the analysis dataset</li>
 <li><code>r/functions/</code>: Supporting R functions</li>
 <li><code>data/data_analysis.rds</code>: Analysis dataset with R variable classes preserved</li>
-<li><code>data/data_analysis.csv</code>: CSV export of the analysis dataset</li>
 </ul>
 <hr>
 <section id="introduction" class="level1" data-number="1">
@@ -3289,7 +3287,7 @@ text-align: justify;
 </section>
 <section id="analysis-data" class="level2" data-number="1.3">
 <h2 data-number="1.3" class="anchored" data-anchor-id="analysis-data"><span class="header-section-number">1.3</span> Analysis data</h2>
-<p><code>data_analysis</code> contains one row per patient and the variables used in the analyses. <code>ID</code> is an artificial identifier generated from row order, retained for matching, CCW and patient-level resampling. The RDS format preserves dates, factors and other R variable classes; the CSV provides the same data in a portable format.</p>
+<p><code>data_analysis</code> contains one row per patient and the variables used in the analyses. <code>ID</code> is an artificial identifier generated from row order, retained for matching, CCW and patient-level resampling. The RDS format preserves dates, factors and other R variable classes.</p>
 <p>The primary endpoint is recurrence within 30 days after therapy completion; recurrence within 90 days is secondary. An empty recurrence date indicates that no recurrence was recorded within the specified follow-up window. Relapse requires a recorded recurrence with concordant pathogens in the initial and recurrent infections. Sensitivity ATB duration determines the treatment strategy, and its initiation defines time zero for the CCW framework.</p>
 <section id="data_analysis.rds-data-dictionary" class="level3" data-number="1.3.1">
 <h3 data-number="1.3.1" class="anchored" data-anchor-id="data_analysis.rds-data-dictionary"><span class="header-section-number">1.3.1</span> <code>data_analysis.rds</code> data dictionary</h3>
@@ -3700,7 +3698,7 @@ text-align: justify;
 </section>
 <section id="reproducibility" class="level2" data-number="1.4">
 <h2 data-number="1.4" class="anchored" data-anchor-id="reproducibility"><span class="header-section-number">1.4</span> Reproducibility</h2>
-<p>The Quarto report contains the analysis code, results and package versions from <code>sessionInfo()</code>. Computationally intensive results are cached using <code>run2()</code>. Existing cache files and PDF figures are retained until manually deleted; displayed figures are generated from the current analysis.</p>
+<p>The Quarto report contains the analysis code, results and package versions from <code>sessionInfo()</code>. Computationally intensive results are cached using <code>run2()</code>.</p>
 </section>
 </section>
 <section id="initiation" class="level1" data-number="2">
