@@ -1,0 +1,52 @@
+{
+  "title": "Statistical code and de-identified analysis data for: Short versus prolonged antibiotic therapy for complicated urinary tract infection in kidney transplant recipients: a target trial emulation",
+  "upload_type": "software",
+  "description": "Statistical code, a Quarto report, and de-identified analysis data accompanying the study Short versus prolonged antibiotic therapy for complicated urinary tract infection in kidney transplant recipients: a target trial emulation. The study compares sensitivity antibiotic therapy stopped by day 13 with therapy continued to day 14 or beyond. The analyses include propensity score matching, recurrence-free survival, relapse analyses, and a two-period approximation to clone-censor-weight analysis.",
+  "creators": [
+    {
+      "name": "Chroma, Adriana",
+      "affiliation": "Department of Nephrology, Transplant Center, Institute for Clinical and Experimental Medicine, Prague, Czech Republic"
+    },
+    {
+      "name": "Petr, Vojtech",
+      "affiliation": "Department of Nephrology, Transplant Center, Institute for Clinical and Experimental Medicine, Prague, Czech Republic"
+    },
+    {
+      "name": "Tichanek, Filip",
+      "affiliation": "Department of Data Science, Institute for Clinical and Experimental Medicine, Prague, Czech Republic"
+    },
+    {
+      "name": "Schmalz, Michal",
+      "affiliation": "Department of Nephrology, Transplant Center, Institute for Clinical and Experimental Medicine, Prague, Czech Republic"
+    },
+    {
+      "name": "Jakubov, Katarina",
+      "affiliation": "Department of Nephrology, Transplant Center, Institute for Clinical and Experimental Medicine, Prague, Czech Republic"
+    },
+    {
+      "name": "D'Angelo, Marta",
+      "affiliation": "Department of Nephrology, Transplant Center, Institute for Clinical and Experimental Medicine, Prague, Czech Republic; Nephrology Unit, University Hospital of Parma, Parma, Italy"
+    },
+    {
+      "name": "Viklicky, Ondrej",
+      "affiliation": "Department of Nephrology, Transplant Center, Institute for Clinical and Experimental Medicine, Prague, Czech Republic"
+    },
+    {
+      "name": "Zahradka, Ivan",
+      "affiliation": "Department of Nephrology, Transplant Center, Institute for Clinical and Experimental Medicine, Prague, Czech Republic"
+    }
+  ],
+  "version": "1.0.0",
+  "access_right": "open",
+  "keywords": [
+    "kidney transplantation",
+    "complicated urinary tract infection",
+    "antibiotic duration",
+    "target trial emulation",
+    "propensity score matching",
+    "clone-censor-weight analysis",
+    "recurrence"
+  ],
+  "language": "eng"
+}
+
