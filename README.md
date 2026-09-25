@@ -21,11 +21,9 @@ When using this code or data, please cite the manuscript:
 
 ---
 
-Statistical **report**: TO BE ADDED
+Statistical [**report**](https://filip-tichanek.github.io/uti_atb_dur/): https://filip-tichanek.github.io/uti_atb_dur/
 
-Original **GitHub repository**: TO BE ADDED
-
-**Zenodo data and code archive**: TO BE ADDED
+Original [**GitHub repository**](https://github.com/filip-tichanek/uti_atb_dur): https://github.com/filip-tichanek/uti_atb_dur
 
 The repository is organized as follows:
 
@@ -33,7 +31,6 @@ The repository is organized as follows:
 - `r/initiation.R`: Initialization script for loading packages, functions and preparing the analysis dataset
 - `r/functions/`: Supporting R functions
 - `data/data_analysis.rds`: Analysis dataset with R variable classes preserved
-- `data/data_analysis.csv`: CSV export of the analysis dataset
 
 ---
 
@@ -59,7 +56,7 @@ Analyses are presented for all eligible patients and for patients treated from 2
 
 ## Analysis data
 
-`data_analysis` contains one row per patient and the variables used in the analyses. `ID` is an artificial identifier generated from row order, retained for matching, CCW and patient-level resampling. The RDS format preserves dates, factors and other R variable classes; the CSV provides the same data in a portable format.
+`data_analysis` contains one row per patient and the variables used in the analyses. `ID` is an artificial identifier generated from row order, retained for matching, CCW and patient-level resampling. The RDS format preserves dates, factors and other R variable classes.
 
 The primary endpoint is recurrence within 30 days after therapy completion; recurrence within 90 days is secondary. An empty recurrence date indicates that no recurrence was recorded within the specified follow-up window. Relapse requires a recorded recurrence with concordant pathogens in the initial and recurrent infections. Sensitivity ATB duration determines the treatment strategy, and its initiation defines time zero for the CCW framework.
 
@@ -136,4 +133,4 @@ One row represents one patient. Recurrence is assessed after therapy completion.
 
 ## Reproducibility
 
-The Quarto report contains the analysis code, results and package versions from `sessionInfo()`. Computationally intensive results are cached using `run2()`. Existing cache files and PDF figures are retained until manually deleted; displayed figures are generated from the current analysis.
+The Quarto report contains the analysis code, results and package versions from `sessionInfo()`. Computationally intensive results are cached using `run2()`.
