@@ -113,85 +113,176 @@ profile_or <- function(model) {
 }
 
 my_labels_dict <- c(
-  "(Intercept)" = "(Intercept)",
-  "log2_ATB_duration_overall" = "ATB duration (log2)",
-  "log2_ATB_sensitivity_duration" = "Sensitivity ATB duration (log2)",
-  "log2_ATB_IV_duration" = "IV ATB duration (log2)",
-  "log2_ATB_peroral_duration" = "Peroral ATB duration (log2)",
-  "ATB_peroral_binTRUE" = "Peroral ATB (0/1)",
-  "sex_female" = "Sex female",
-  "SexM" = "Sex male", 
-  "age_by30y" = "Age (per 30 years)",
-  "log2_TX_to_infection" = "Time from Tx to infection (log2)",
-  "log2(TX_to_infection_months + 1)" = "Time from Tx to infection (log2)",
+  "(Intercept)" = "Intercept",
+  "ATB_sensitivity_per7" =
+    "Duration of appropriate therapy, per additional week",
+  "log2_ATB_sensitivity_duration" =
+    "Duration of appropriate therapy, per doubling",
+  "ATB_overall_per7" = "Overall duration of therapy, per additional week",
+  "log2_ATB_duration_overall" = "Overall duration of therapy, per doubling",
+  "ATB_sensitivity_duration" = "Duration of appropriate therapy, days",
+  "ATB_duration_overall" = "Overall duration of therapy, days",
+  "treatment_under14D" = "Appropriate therapy, <=13 vs. >13 days",
+  "sex_female" = "Female sex",
+  "age" = "Age, years",
+  "age_by30y" = "Age, per 30 years",
+  "TX_to_infection_months" = "Time from transplantation to infection, months",
+  "log2_TX_to_infection" = "Time from transplantation, per doubling",
   "urology_acute" = "Acute urological complications",
+  "stent_in_situ" = "Ureteral stent in situ",
+  "bph_pca_subvesical_obstruction" =
+    "Subvesical obstruction",
+  "urethral_stricture" = "Urethral stricture",
+  "renofunctional_obstruction" = "Obstruction risk factors",
+  "past_urol_instrumentation" = "Past urological instrumentation",
   "diabetes_severe" = "Complicated diabetes mellitus",
   "diabetes" = "Diabetes mellitus",
-  "mra_positive" = "Multidrug resistant agens",
-  "bad_response_early_worsening" = "Unfavorable clinical response",
-  "favourable_early_response" = "Favorable early response",
-  "hemoculture_positive" = "Hemoculture positivity",
-  "profylaxis" = "Prophylaxis",
-  "severe_aki" = "Stage 2/3 AKI",
-  "I(years_from2019/10)" = "Calendar time (10 years)",
-  "stent_in_situ" = "JJ stent in situ",
-  "bph_pca_subvesical_obstruction" = "BPH/Ca Prostate/Subvesical obs.",
-  "urethral_stricture" = "Urethral stricture",
-  "renofunctional_obstruction" = "RF obstruction",
-  "treatment_under14D" = "Sensitivity ATB duration <14 days",
-  "ATB_sensitivity_per7" = "Sensitivity ATB duration (per 7 days)",
-  "ATB_overall_per7" = "Overall ATB duration (per 7 days)",
-  "CRP_entry_by100" = "Entry CRP (per 100)",
-  "log2(CRP_entry)" = "Entry CRP (log2)",
-  "CRP_max_by100" = "Maximum CRP (per 100)",
-  "years_from2019" = "Calendar time (years)",
-  "past_urol_instrumentation" = "Past urological instrumentation",
-  "calendar_time_10y" = "Calendar time (10 years)",
-  "calendar_period2017-2021" = "Calendar period 2017 to 2021",
+  "mra_positive" = "Multidrug-resistant pathogen",
+  "bad_response_early_worsening" = "Unfavourable clinical response",
+  "hemoculture_positive" = "Positive blood culture",
+  "profylaxis" = "Antibiotic prophylaxis",
+  "severe_aki" = "Stage 2–3 AKI",
+  "CRP_entry" = "CRP at entry, mg/L",
+  "CRP_max" = "Maximum CRP, mg/L",
+  "CRP_entry_by100" = "CRP at entry, per 100 mg/L",
+  "CRP_max_by100" = "Maximum CRP, per 100 mg/L",
+  "log2(CRP_entry)" = "CRP at entry, per doubling",
+  "log2(CRP_max)" = "Maximum CRP, per doubling",
+  "years_from2019" = "Calendar time, per year",
+  "I(years_from2019/10)" = "Calendar time, per decade",
+  "I(years_from2019 / 10)" = "Calendar time, per decade",
+  "calendar_period" = "Calendar period",
+  "calendar_period<=2016" = "Calendar period 2008–2016",
+  "calendar_period2017-2021" = "Calendar period 2017–2021",
   "calendar_period>=2022" = "Calendar period 2022 onward",
+  "immunosuppression_regimen" = "Immunosuppressive regimen",
+  "immunosuppression_regimenother triple" =
+    "Immunosuppression, other vs. standard triple",
+  "immunosuppression_regimendual or single" =
+    "Immunosuppression, dual or single vs. standard triple",
+  "depletion_induction_or_rejection_treatment_6M" =
+    "Depletion induction or rejection treatment within 6 months",
+  "fever_before_planned_ATB_stop" = "Fever before planned end of therapy",
+  "clinical_worsening_before_planned_ATB_stop" =
+    "Clinical worsening before planned end of therapy",
+  "urine_findings_worsening_before_planned_ATB_stop" =
+    "Worsening urinary findings before planned end of therapy",
+  "ATB_extension_CRP_dynamics" = "Therapy extended because of CRP dynamics",
+  "ATB_extension_other_reason" =
+    "Therapy extended for another documented reason",
+  "ATB_extension_urologic_procedure" =
+    "Therapy extended because of a urological procedure",
+  "any_problem_D1_13" = "Any recorded reason for extending therapy",
+  "fever_signs" = "Systemic infection symptoms",
+  "dysuria_UroInfSigns" = "Urinary tract infection symptoms",
+  "initial_agent_identified" = "Culture-positive UTI",
+  "recurence_till_1M" = "Recurrence within 30 days",
+  "recurence_till_90D" = "Recurrence within 90 days",
+  "distance" = "Propensity score"
+)
+
+plot_labels_dict <- c(
+  "ATB_sensitivity_per7" = "Therapy duration (per week)",
+  "log2_ATB_sensitivity_duration" = "Therapy duration (per doubling)",
+  "ATB_overall_per7" = "Overall duration (per week)",
+  "log2_ATB_duration_overall" = "Overall duration (per doubling)",
+  "ATB_sensitivity_duration" = "Therapy duration (days)",
+  "ATB_duration_overall" = "Overall duration (days)",
+  "treatment_under14D" = "Therapy duration (<=13 vs. >13 days)",
+  "sex_female" = "Female sex",
+  "age" = "Age (years)",
+  "age_by30y" = "Age (per 30 years)",
+  "TX_to_infection_months" = "Time since TX (months)",
+  "log2_TX_to_infection" = "Time since TX (per doubling)",
+  "urology_acute" = "Acute urological complications",
+  "stent_in_situ" = "Ureteral stent",
+  "bph_pca_subvesical_obstruction" = "Subvesical obstruction",
+  "urethral_stricture" = "Urethral stricture",
+  "renofunctional_obstruction" = "Obstruction risk factors",
+  "past_urol_instrumentation" = "Past urological instrumentation",
+  "diabetes_severe" = "Complicated diabetes",
+  "diabetes" = "Diabetes",
+  "mra_positive" = "MDR pathogen",
+  "bad_response_early_worsening" = "Poor response/early worsening",
+  "hemoculture_positive" = "Positive blood culture",
+  "profylaxis" = "ATB prophylaxis",
+  "severe_aki" = "Stage 2–3 AKI",
+  "CRP_entry" = "Entry CRP (mg/L)",
+  "CRP_max" = "Maximum CRP (mg/L)",
+  "CRP_entry_by100" = "Entry CRP (per 100 mg/L)",
+  "CRP_max_by100" = "Maximum CRP (per 100 mg/L)",
+  "log2(CRP_entry)" = "Entry CRP (per doubling)",
+  "log2(CRP_max)" = "Maximum CRP (per doubling)",
+  "years_from2019" = "Calendar time (per year)",
+  "I(years_from2019/10)" = "Calendar time (per decade)",
+  "I(years_from2019 / 10)" = "Calendar time (per decade)",
+  "calendar_period" = "Calendar period",
+  "calendar_period<=2016" = "2008 to 2016",
+  "calendar_period2017-2021" = "2017 to 2021",
+  "calendar_period>=2022" = "2022 onward",
+  "immunosuppression_regimen" = "Maintenance IS",
   "immunosuppression_regimenother triple" = "Other triple IS",
   "immunosuppression_regimendual or single" = "Dual or single IS",
   "depletion_induction_or_rejection_treatment_6M" =
-    "Depletion or rejection treatment in prior 6 months",
-  "fever_before_planned_ATB_stop" = "Fever during days 1 to 13",
-  "clinical_worsening_before_planned_ATB_stop" =
-    "Clinical worsening during days 1 to 13",
-  "urine_findings_worsening_before_planned_ATB_stop" =
-    "Urine findings worsening during days 1 to 13",
-  "ATB_extension_CRP_dynamics" = "CRP dynamics during days 1 to 13",
-  "ATB_extension_other_reason" = "Other reason during days 1 to 13",
-  "ATB_extension_urologic_procedure" =
-    "Urological procedure during days 1 to 13"
+    "Depletion/rejection treatment",
+  "distance" = "Propensity score"
 )
 
-plot_my_model <- function(model) {
+plot_my_model <- function(
+  model,
+  axis.lim = NULL,
+  grid.breaks = NULL
+) {
   model_terms <- names(coef(model))
   plot_terms <- model_terms[model_terms != "(Intercept)"]
-  
+
   mapped_labels <- unname(ifelse(
-    is.na(my_labels_dict[plot_terms]), 
-    plot_terms, 
-    my_labels_dict[plot_terms]
+    is.na(plot_labels_dict[plot_terms]),
+    plot_terms,
+    plot_labels_dict[plot_terms]
   ))
-  
-  p <- sjPlot::plot_model(
-    model, 
-    type = "est", 
-    axis.labels = rev(mapped_labels)
-  ) + 
-    geom_hline(yintercept = 1, linetype = "dashed", color = "black")
-  
-  return(p)
+
+  sjPlot::plot_model(
+    model,
+    type = "est",
+    title = "",
+    axis.lim = axis.lim,
+    grid.breaks = grid.breaks,
+    axis.labels = stringr::str_wrap(
+      rev(mapped_labels),
+      width = 42
+    )
+  ) +
+    geom_hline(
+      yintercept = 1,
+      linetype = "dashed",
+      colour = "black"
+    )
 }
 ```
 
 ## Analysis data
+
+The data and model formulas are retained. Table labels follow manuscript v12 and its supplement. Plot labels are shortened; figure captions define the abbreviations and treatment duration. Calendar time remains centred on the median overall treatment initiation date, as in the source code; the historical variable name years_from2019 does not imply centring on 2019.
 
 ```{r}
 
 data_2017 <- data_analysis |>
   dplyr::filter(calendar_year >= 2017) |>
   data.frame()
+
+analysis_data_check <- data_analysis |>
+  dplyr::summarise(
+    patients = dplyr::n(),
+    missing_entry_CRP = sum(is.na(CRP_entry)),
+    zero_entry_CRP = sum(CRP_entry == 0, na.rm = TRUE),
+    zero_maximum_CRP = sum(CRP_max == 0, na.rm = TRUE)
+  ) |>
+  data.frame()
+kableExtra::kable(
+  analysis_data_check,
+  caption = "Analysis data after loading or rebuilding the cache. patients is the cohort size; missing_entry_CRP and zero_entry_CRP count missing and zero entry CRP; zero_maximum_CRP counts zero maximum CRP. The supplied initiation recodes blank CRP as zero before its existing missing-entry-CRP filter; no new zero replacement is introduced here. Verify these counts when rebuilding the dataset"
+)
 ```
 
 
@@ -289,7 +380,7 @@ cohort_table <- data_analysis |>
     treatment_group,
     age,
     sex_female,
-    log2_TX_to_infection,
+    TX_to_infection_months,
     urology_acute,
     stent_in_situ,
     bph_pca_subvesical_obstruction,
@@ -299,6 +390,7 @@ cohort_table <- data_analysis |>
     diabetes,
     mra_positive,
     bad_response_early_worsening,
+    initial_agent_identified,
     hemoculture_positive,
     fever_signs,
     dysuria_UroInfSigns,
@@ -317,18 +409,62 @@ cohort_table <- data_analysis |>
   gtsummary::tbl_summary(
     by = treatment_group,
     label = list(
+      age ~
+        "Age, years",
+      sex_female ~
+        "Female sex",
+      TX_to_infection_months ~
+        "Time from transplantation to infection, months",
+      urology_acute ~
+        "Acute urological complications",
+      stent_in_situ ~
+        "Ureteral stent in situ",
       bph_pca_subvesical_obstruction ~
-        "BPH/prostate cancer/subvesical obstruction",
-      urethral_stricture ~ "Urethral stricture",
-      renofunctional_obstruction ~ "Obstruction",
-      hemoculture_positive ~ "Positive blood culture",
-      fever_signs ~ "Fever, chills or rigors",
-      dysuria_UroInfSigns ~ "Dysuria or other lower UTI symptoms",
-      recurence_till_1M ~ "Recurrence within 30 days",
-      recurence_till_90D ~ "Recurrence within 90 days"
+        "Subvesical obstruction",
+      urethral_stricture ~
+        "Urethral stricture",
+      renofunctional_obstruction ~
+        "Obstruction risk factors",
+      diabetes_severe ~
+        "Complicated diabetes mellitus",
+      diabetes ~
+        "Diabetes mellitus",
+      mra_positive ~
+        "Multidrug-resistant pathogen",
+      bad_response_early_worsening ~
+        "Unfavourable clinical response",
+      initial_agent_identified ~
+        "Culture-positive UTI",
+      hemoculture_positive ~
+        "Positive blood culture",
+      fever_signs ~
+        "Systemic infection symptoms",
+      dysuria_UroInfSigns ~
+        "Urinary tract infection symptoms",
+      profylaxis ~
+        "Antibiotic prophylaxis",
+      severe_aki ~
+        "Stage 2–3 AKI",
+      CRP_entry ~
+        "CRP at entry, mg/L",
+      CRP_max ~
+        "Maximum CRP, mg/L",
+      immunosuppression_regimen ~
+        "Immunosuppressive regimen",
+      depletion_induction_or_rejection_treatment_6M ~
+        "Depletion induction or rejection treatment within 6 months",
+      calendar_period ~
+        "Calendar period",
+      ATB_sensitivity_duration ~
+        "Duration of appropriate therapy, days",
+      recurence_till_1M ~
+        "Recurrence within 30 days",
+      recurence_till_90D ~
+        "Recurrence within 90 days"
     ),
     type = list(
       c(
+        initial_agent_identified,
         hemoculture_positive,
         fever_signs,
         dysuria_UroInfSigns,
@@ -338,6 +474,7 @@ cohort_table <- data_analysis |>
     ),
     value = list(
       c(
+        initial_agent_identified,
         hemoculture_positive,
         fever_signs,
         dysuria_UroInfSigns,
@@ -364,7 +501,7 @@ cohort_table
 Look for closely related measures before interpreting models that include them together. Spearman correlations describe rank relationships; the lower panels show the original observations.
 
 ```{r, fig.height=9, fig.width=9.5}
-#| fig-cap: "Figure 2. Pairwise Spearman correlations among age, admission and maximum CRP, time since transplantation, and sensitivity ATB, overall and intravenous antibiotic duration. Upper cells show Spearman rho; lower cells show individual observations. Variables are ordered by UPGMA hierarchical clustering using distance 1 minus rho and average linkage. Pairwise complete records are used; axes in lower cells use each variable's observed range"
+#| fig-cap: "Figure 2. Pairwise Spearman correlations among age, admission and maximum CRP, time since transplantation, and sensitivity ATB, overall and intravenous antibiotic duration. Upper cells show Spearman rho; lower cells show individual observations. Variables are ordered by UPGMA hierarchical clustering using distance 1 minus rho and average linkage. Pairwise complete records are used; axes in lower cells use each variable's observed range. Effective therapy duration denotes days of treatment with an antibiotic to which the isolated organism was susceptible in vitro. IV theraphy means intravenous antibiotic therapy. Overall duration includes all antibiotic treatment irrespective of in vitro susceptibility; IV denotes intravenous and TX transplantation"
 
 correlation_data <- data_analysis |>
   dplyr::select(
@@ -378,9 +515,9 @@ correlation_data <- data_analysis |>
   ) |>
   data.frame()
 correlation_labels <- c(
-  "Age [years]", "Admission CRP", "Maximum CRP",
-  "Time since TX [months]", "Sensitivity ATB [days]",
-  "Overall ATB [days]", "Intravenous ATB [days]"
+  "Age [years]", "Entry CRP [mg/L]", "Maximum CRP [mg/L]",
+  "Time since TX [months]", "Effective therapy duration [days]",
+  "Overall ATB duration [days]", "IV ATB duration [days]"
 )
 rho_matrix <- cor(
   correlation_data,
@@ -432,7 +569,7 @@ myplot <- ComplexHeatmap::Heatmap(
     }
   }
 )
-plotac <- "fig_x03"
+plotac <- "fig_x02"
 assign(plotac, myplot)
 figure_path <- file.path("gitignore/figures", paste0(plotac, ".pdf"))
 if (!file.exists(figure_path)) {
@@ -460,6 +597,7 @@ unadjusted_table <- function(outcome, predictors, data) {
     profile_or(model) |>
       dplyr::mutate(
         predictor = predictor,
+        term = dplyr::coalesce(unname(my_labels_dict[term]), term),
         n = nobs(model),
         .before = 1
       )
@@ -481,7 +619,7 @@ unadjusted_predictors <- c(
 
 ## Recurrence within 30 days
 
-Show the unadjusted associations.
+Show the unadjusted associations
 
 ```{r}
 unadjusted_30D <- unadjusted_table(
@@ -542,6 +680,9 @@ car::vif(m_30D_effective_7d)
 
 sjPlot::tab_model(
   m_30D_effective_7d,
+  pred.labels = unname(
+    my_labels_dict[names(coef(m_30D_effective_7d))]
+  ),
   show.ci = 0.95,
   show.p = TRUE,
   show.se = FALSE,
@@ -553,12 +694,16 @@ sjPlot::tab_model(
 
 Plot the model
 
-```{r, fig.height=8, fig.width=9}
-#| fig-cap: "Figure 3. 30-day recurrence. Sensitivity ATB duration per additional seven days. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+```{r, fig.height=6.0, fig.width=5.4}
+#| fig-cap: "Figure 3. 30-day recurrence. Sensitivity ATB duration per additional seven days. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1. Therapy duration denotes days of treatment with an antibiotic to which the isolated organism was susceptible in vitro. TX denotes transplantation, MDR multidrug resistance, ATB antibiotics and AKI acute kidney injury"
 
-myplot <- plot_my_model(m_30D_effective_7d)
-plotac <- "fig_x04"
-myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot <- plot_my_model(
+  m_30D_effective_7d, 
+  axis.lim = c(0.5, 4)
+  )
+
+plotac <- "fig_x03"
+myplot <- save_plot(myplot, plotac, width = 5.4, height = 6.0)
 myplot
 ```
 
@@ -589,6 +734,9 @@ car::vif(m_90D_effective_7d)
 
 sjPlot::tab_model(
   m_90D_effective_7d,
+  pred.labels = unname(
+    my_labels_dict[names(coef(m_90D_effective_7d))]
+  ),
   show.ci = 0.95,
   show.p = TRUE,
   show.se = FALSE,
@@ -600,12 +748,16 @@ sjPlot::tab_model(
 
 Plot the model
 
-```{r, fig.height=8, fig.width=9}
-#| fig-cap: "Figure 4. 90-day recurrence. Sensitivity ATB duration per additional seven days. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+```{r, fig.height=6.0, fig.width=5.4}
+#| fig-cap: "Figure 4. 90-day recurrence. Sensitivity ATB duration per additional seven days. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1. Therapy duration denotes days of treatment with an antibiotic to which the isolated organism was susceptible in vitro. TX denotes transplantation, MDR multidrug resistance, ATB antibiotics and AKI acute kidney injury"
 
-myplot <- plot_my_model(m_90D_effective_7d)
-plotac <- "fig_x05"
-myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot <- plot_my_model(
+  m_90D_effective_7d, 
+  axis.lim = c(0.49, 5)
+  )
+
+plotac <- "fig_x04"
+myplot <- save_plot(myplot, plotac, width = 5.4, height = 6.0)
 myplot
 ```
 
@@ -636,6 +788,9 @@ car::vif(m_30D_effective_log2)
 
 sjPlot::tab_model(
   m_30D_effective_log2,
+  pred.labels = unname(
+    my_labels_dict[names(coef(m_30D_effective_log2))]
+  ),
   show.ci = 0.95,
   show.p = TRUE,
   show.se = FALSE,
@@ -647,12 +802,17 @@ sjPlot::tab_model(
 
 Plot the model
 
-```{r, fig.height=8, fig.width=9}
-#| fig-cap: "Figure 5. 30-day recurrence. Sensitivity ATB duration per doubling. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+```{r, fig.height=6.0, fig.width=5.4}
+#| fig-cap: "Figure 5. 30-day recurrence. Sensitivity ATB duration per doubling. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1. Therapy duration denotes days of treatment with an antibiotic to which the isolated organism was susceptible in vitro. TX denotes transplantation, MDR multidrug resistance, ATB antibiotics and AKI acute kidney injury"
 
-myplot <- plot_my_model(m_30D_effective_log2)
-plotac <- "fig_x06"
-myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot <- plot_my_model(
+  m_30D_effective_log2, 
+  axis.lim = c(0.49, 4)
+  )
+
+
+plotac <- "fig_x05"
+myplot <- save_plot(myplot, plotac, width = 5.4, height = 6.0)
 myplot
 ```
 
@@ -683,6 +843,9 @@ car::vif(m_90D_effective_log2)
 
 sjPlot::tab_model(
   m_90D_effective_log2,
+  pred.labels = unname(
+    my_labels_dict[names(coef(m_90D_effective_log2))]
+  ),
   show.ci = 0.95,
   show.p = TRUE,
   show.se = FALSE,
@@ -693,12 +856,16 @@ sjPlot::tab_model(
 ```
 Plot the model
 
-```{r, fig.height=8, fig.width=9}
-#| fig-cap: "Figure 6. 90-day recurrence. Sensitivity ATB duration per doubling. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+```{r, fig.height=6.0, fig.width=5.4}
+#| fig-cap: "Figure 6. 90-day recurrence. Sensitivity ATB duration per doubling. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1. Therapy duration denotes days of treatment with an antibiotic to which the isolated organism was susceptible in vitro. TX denotes transplantation, MDR multidrug resistance, ATB antibiotics and AKI acute kidney injury"
 
-myplot <- plot_my_model(m_90D_effective_log2)
-plotac <- "fig_x07"
-myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot <- plot_my_model(
+  m_90D_effective_log2,
+  axis.lim = c(0.49, 5.2))
+
+
+plotac <- "fig_x06"
+myplot <- save_plot(myplot, plotac, width = 5.4, height = 6.0)
 myplot
 ```
 
@@ -729,6 +896,9 @@ car::vif(m_30D_effective_short)
 
 sjPlot::tab_model(
   m_30D_effective_short,
+  pred.labels = unname(
+    my_labels_dict[names(coef(m_30D_effective_short))]
+  ),
   show.ci = 0.95,
   show.p = TRUE,
   show.se = FALSE,
@@ -739,12 +909,17 @@ sjPlot::tab_model(
 ```
 Plot the model
 
-```{r, fig.height=8, fig.width=9}
-#| fig-cap: "Figure 7. 30-day recurrence. Sensitivity ATB duration: <=13 versus >13 days. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+```{r, fig.height=6.0, fig.width=5.4}
+#| fig-cap: "Figure 7. 30-day recurrence. Sensitivity ATB duration: <=13 versus >13 days. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1. Therapy duration denotes days of treatment with an antibiotic to which the isolated organism was susceptible in vitro. TX denotes transplantation, MDR multidrug resistance, ATB antibiotics and AKI acute kidney injury"
 
-myplot <- plot_my_model(m_30D_effective_short)
-plotac <- "fig_x08"
-myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot <- plot_my_model(
+  m_30D_effective_short, 
+  axis.lim = c(0.49, 4.9)
+  )
+
+
+plotac <- "fig_x07"
+myplot <- save_plot(myplot, plotac, width = 5.4, height = 6.0)
 myplot
 ```
 
@@ -775,6 +950,9 @@ car::vif(m_90D_effective_short)
 
 sjPlot::tab_model(
   m_90D_effective_short,
+  pred.labels = unname(
+    my_labels_dict[names(coef(m_90D_effective_short))]
+  ),
   show.ci = 0.95,
   show.p = TRUE,
   show.se = FALSE,
@@ -783,14 +961,20 @@ sjPlot::tab_model(
 )
 
 ```
+
 Plot the model
 
-```{r, fig.height=8, fig.width=9}
-#| fig-cap: "Figure 8. 90-day recurrence. Sensitivity ATB duration: <=13 versus >13 days. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+```{r, fig.height=6.0, fig.width=5.4}
+#| fig-cap: "Figure 8. 90-day recurrence. Sensitivity ATB duration: <=13 versus >13 days. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1. Therapy duration denotes days of treatment with an antibiotic to which the isolated organism was susceptible in vitro. TX denotes transplantation, MDR multidrug resistance, ATB antibiotics and AKI acute kidney injury"
 
-myplot <- plot_my_model(m_90D_effective_short)
-plotac <- "fig_x09"
-myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot <- plot_my_model(
+  m_90D_effective_short, 
+  axis.lim = c(0.44, 5)
+  )
+
+
+plotac <- "fig_x08"
+myplot <- save_plot(myplot, plotac, width = 5.4, height = 6.0)
 myplot
 ```
 
@@ -822,6 +1006,9 @@ car::vif(m_30D_overall_7d)
 
 sjPlot::tab_model(
   m_30D_overall_7d,
+  pred.labels = unname(
+    my_labels_dict[names(coef(m_30D_overall_7d))]
+  ),
   show.ci = 0.95,
   show.p = TRUE,
   show.se = FALSE,
@@ -830,14 +1017,20 @@ sjPlot::tab_model(
 )
 
 ```
+
 Plot the model
 
-```{r, fig.height=8, fig.width=9}
-#| fig-cap: "Figure 9. 30-day recurrence. Overall duration per seven days. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+```{r, fig.height=6.0, fig.width=5.4}
+#| fig-cap: "Figure 9. 30-day recurrence. Overall duration per seven days. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1. Overall duration includes all antibiotic treatment irrespective of in vitro susceptibility. TX denotes transplantation, MDR multidrug resistance, ATB antibiotics and AKI acute kidney injury"
 
-myplot <- plot_my_model(m_30D_overall_7d)
-plotac <- "fig_x10"
-myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot <- plot_my_model(
+  m_30D_overall_7d, 
+  axis.lim = c(0.49, 4.9)
+  )
+
+
+plotac <- "fig_x09"
+myplot <- save_plot(myplot, plotac, width = 5.4, height = 6.0)
 myplot
 ```
 
@@ -847,6 +1040,7 @@ myplot
 Fit the model
 
 ```{r}
+
 m_90D_overall_7d <- glm(
   recurence_till_90D ~
     ATB_overall_per7 +
@@ -869,6 +1063,9 @@ car::vif(m_90D_overall_7d)
 
 sjPlot::tab_model(
   m_90D_overall_7d,
+  pred.labels = unname(
+    my_labels_dict[names(coef(m_90D_overall_7d))]
+  ),
   show.ci = 0.95,
   show.p = TRUE,
   show.se = FALSE,
@@ -877,14 +1074,20 @@ sjPlot::tab_model(
 )
 
 ```
+
 Plot the model
 
-```{r, fig.height=8, fig.width=9}
-#| fig-cap: "Figure 10. 90-day recurrence. Overall duration per seven days. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+```{r, fig.height=6.0, fig.width=5.4}
+#| fig-cap: "Figure 10. 90-day recurrence. Overall duration per seven days. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1. Overall duration includes all antibiotic treatment irrespective of in vitro susceptibility. TX denotes transplantation, MDR multidrug resistance, ATB antibiotics and AKI acute kidney injury"
 
-myplot <- plot_my_model(m_90D_overall_7d)
-plotac <- "fig_x12"
-myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot <- plot_my_model(
+  m_90D_overall_7d,
+  axis.lim = c(0.24, 5)
+  )
+
+
+plotac <- "fig_x10"
+myplot <- save_plot(myplot, plotac, width = 5.4, height = 6.0)
 myplot
 ```
 
@@ -915,6 +1118,9 @@ car::vif(m_30D_overall_log2)
 
 sjPlot::tab_model(
   m_30D_overall_log2,
+  pred.labels = unname(
+    my_labels_dict[names(coef(m_30D_overall_log2))]
+  ),
   show.ci = 0.95,
   show.p = TRUE,
   show.se = FALSE,
@@ -923,14 +1129,20 @@ sjPlot::tab_model(
 )
 
 ```
+
 Plot the model
 
-```{r, fig.height=8, fig.width=9}
-#| fig-cap: "Figure 11. 30-day recurrence. Overall duration per doubling. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+```{r, fig.height=6.0, fig.width=5.4}
 
-myplot <- plot_my_model(m_30D_overall_log2)
+#| fig-cap: "Figure 11. 30-day recurrence. Overall duration per doubling. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1. Overall duration includes all antibiotic treatment irrespective of in vitro susceptibility. TX denotes transplantation, MDR multidrug resistance, ATB antibiotics and AKI acute kidney injury"
+
+myplot <- plot_my_model(
+  m_30D_overall_log2,
+  axis.lim = c(0.49, 4.5)
+  )
+
 plotac <- "fig_x11"
-myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot <- save_plot(myplot, plotac, width = 5.4, height = 6.0)
 myplot
 ```
 
@@ -961,6 +1173,9 @@ car::vif(m_90D_overall_log2)
 
 sjPlot::tab_model(
   m_90D_overall_log2,
+  pred.labels = unname(
+    my_labels_dict[names(coef(m_90D_overall_log2))]
+  ),
   show.ci = 0.95,
   show.p = TRUE,
   show.se = FALSE,
@@ -969,14 +1184,19 @@ sjPlot::tab_model(
 )
 
 ```
+
 Plot the model
 
-```{r, fig.height=8, fig.width=9}
-#| fig-cap: "Figure 12. 90-day recurrence. Overall duration per doubling. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+```{r, fig.height=6.0, fig.width=5.4}
+#| fig-cap: "Figure 12. 90-day recurrence. Overall duration per doubling. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1. Overall duration includes all antibiotic treatment irrespective of in vitro susceptibility. TX denotes transplantation, MDR multidrug resistance, ATB antibiotics and AKI acute kidney injury"
 
-myplot <- plot_my_model(m_90D_overall_log2)
-plotac <- "fig_x13"
-myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot <- plot_my_model(
+  m_90D_overall_log2, 
+  axis.lim = c(0.49, 5)
+  )
+
+plotac <- "fig_x12"
+myplot <- save_plot(myplot, plotac, width = 5.4, height = 6.0)
 myplot
 ```
 
@@ -1008,6 +1228,9 @@ summary(m_30D_sensitivity_IS)
 car::vif(m_30D_sensitivity_IS)
 sjPlot::tab_model(
   m_30D_sensitivity_IS,
+  pred.labels = unname(
+    my_labels_dict[names(coef(m_30D_sensitivity_IS))]
+  ),
   show.ci = 0.95,
   show.p = TRUE,
   show.se = FALSE,
@@ -1015,14 +1238,20 @@ sjPlot::tab_model(
   title = "30-day recurrence. Sensitivity ATB duration with immunosuppression: adjusted odds ratios"
 )
 ```
+
 Plot the model
 
-```{r, fig.height=8, fig.width=9}
-#| fig-cap: "Figure 13. 30-day recurrence. Sensitivity ATB duration with immunosuppression. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. The model retains the original adjustment set and adds maintenance immunosuppression and depletion or rejection treatment in the preceding six months. OR states how many times recurrence odds change per modelled numerical unit, from 0 to 1 for binary predictors, or from the reference category to the category shown. Sensitivity ATB duration is per seven days, age per 30 years, calendar time per ten years and log2 variables per doubling. The dashed line marks OR = 1"
+```{r, fig.height=6.0, fig.width=5.4}
+#| fig-cap: "Figure 13. 30-day recurrence. Sensitivity ATB duration with immunosuppression. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. The model retains the original adjustment set and adds maintenance immunosuppression and depletion or rejection treatment in the preceding six months. OR states how many times recurrence odds change per modelled numerical unit, from 0 to 1 for binary predictors, or from the reference category to the category shown. Sensitivity ATB duration is per seven days, age per 30 years, calendar time per ten years and log2 variables per doubling. The dashed line marks OR = 1. Therapy duration denotes days of treatment with an antibiotic to which the isolated organism was susceptible in vitro. TX denotes transplantation, MDR multidrug resistance, ATB antibiotics and AKI acute kidney injury. IS denotes maintenance immunosuppression, with standard triple therapy as reference; depletion/rejection treatment refers to the preceding six months"
 
-myplot <- plot_my_model(m_30D_sensitivity_IS)
-plotac <- "fig_x20"
-myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot <- plot_my_model(
+  m_30D_sensitivity_IS,
+  axis.lim = c(0.49, 4.5)
+  )
+
+
+plotac <- "fig_x13"
+myplot <- save_plot(myplot, plotac, width = 5.4, height = 6.0)
 myplot
 ```
 
@@ -1054,6 +1283,9 @@ summary(m_90D_sensitivity_IS)
 car::vif(m_90D_sensitivity_IS)
 sjPlot::tab_model(
   m_90D_sensitivity_IS,
+  pred.labels = unname(
+    my_labels_dict[names(coef(m_90D_sensitivity_IS))]
+  ),
   show.ci = 0.95,
   show.p = TRUE,
   show.se = FALSE,
@@ -1061,14 +1293,20 @@ sjPlot::tab_model(
   title = "90-day recurrence. Sensitivity ATB duration with immunosuppression: adjusted odds ratios"
 )
 ```
+
 Plot the model
 
-```{r, fig.height=8, fig.width=9}
-#| fig-cap: "Figure 14. 90-day recurrence. Sensitivity ATB duration with immunosuppression. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. The model retains the original adjustment set and adds maintenance immunosuppression and depletion or rejection treatment in the preceding six months. OR states how many times recurrence odds change per modelled numerical unit, from 0 to 1 for binary predictors, or from the reference category to the category shown. Sensitivity ATB duration is per seven days, age per 30 years, calendar time per ten years and log2 variables per doubling. The dashed line marks OR = 1"
+```{r, fig.height=6.0, fig.width=5.4}
+#| fig-cap: "Figure 14. 90-day recurrence. Sensitivity ATB duration with immunosuppression. Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. The model retains the original adjustment set and adds maintenance immunosuppression and depletion or rejection treatment in the preceding six months. OR states how many times recurrence odds change per modelled numerical unit, from 0 to 1 for binary predictors, or from the reference category to the category shown. Sensitivity ATB duration is per seven days, age per 30 years, calendar time per ten years and log2 variables per doubling. The dashed line marks OR = 1. Therapy duration denotes days of treatment with an antibiotic to which the isolated organism was susceptible in vitro. TX denotes transplantation, MDR multidrug resistance, ATB antibiotics and AKI acute kidney injury. IS denotes maintenance immunosuppression, with standard triple therapy as reference; depletion/rejection treatment refers to the preceding six months"
 
-myplot <- plot_my_model(m_90D_sensitivity_IS)
-plotac <- "fig_x21"
-myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot <- plot_my_model(
+  m_90D_sensitivity_IS, 
+  axis.lim = c(0.49, 5)
+  )
+
+
+plotac <- "fig_x14"
+myplot <- save_plot(myplot, plotac, width = 5.4, height = 6.0)
 myplot
 ```
 
@@ -1101,6 +1339,9 @@ car::vif(m_90D_effective_7d_2017)
 
 sjPlot::tab_model(
   m_90D_effective_7d_2017,
+  pred.labels = unname(
+    my_labels_dict[names(coef(m_90D_effective_7d_2017))]
+  ),
   show.ci = 0.95,
   show.p = TRUE,
   show.se = FALSE,
@@ -1109,14 +1350,20 @@ sjPlot::tab_model(
 )
 
 ```
+
 Plot the model
 
-```{r, fig.height=8, fig.width=9}
-#| fig-cap: "Figure 15. 90-day recurrence. Sensitivity ATB duration per additional seven days (year 2017+). Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+```{r, fig.height=6.0, fig.width=5.4}
+#| fig-cap: "Figure 15. 90-day recurrence. Sensitivity ATB duration per additional seven days (year 2017+). Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1. Therapy duration denotes days of treatment with an antibiotic to which the isolated organism was susceptible in vitro. TX denotes transplantation, MDR multidrug resistance, ATB antibiotics and AKI acute kidney injury"
 
-myplot <- plot_my_model(m_90D_effective_7d_2017)
-plotac <- "fig_x05v2"
-myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot <- plot_my_model(
+  m_90D_effective_7d_2017, 
+  axis.lim = c(0.49, 5)
+  )
+
+
+plotac <- "fig_x15"
+myplot <- save_plot(myplot, plotac, width = 5.4, height = 6.0)
 myplot
 ```
 
@@ -1147,6 +1394,9 @@ car::vif(m_30D_effective_7d_2017)
 
 sjPlot::tab_model(
   m_30D_effective_7d_2017,
+  pred.labels = unname(
+    my_labels_dict[names(coef(m_30D_effective_7d_2017))]
+  ),
   show.ci = 0.95,
   show.p = TRUE,
   show.se = FALSE,
@@ -1157,12 +1407,17 @@ sjPlot::tab_model(
 ```
 Plot the model
 
-```{r, fig.height=8, fig.width=9}
-#| fig-cap: "Figure 16. 30-day recurrence. Sensitivity ATB duration per additional seven days (year 2017+). Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1"
+```{r, fig.height=6.0, fig.width=5.4}
+#| fig-cap: "Figure 16. 30-day recurrence. Sensitivity ATB duration per additional seven days (year 2017+). Points show adjusted logistic-regression odds ratios and horizontal lines show 95% profile-likelihood confidence intervals. OR states how many times recurrence odds change when a numerical predictor increases by one modelled unit or a binary predictor changes from 0 to 1. For other categorical predictors, the change is from the reference category to the category shown. The dashed line marks OR = 1. Therapy duration denotes days of treatment with an antibiotic to which the isolated organism was susceptible in vitro. TX denotes transplantation, MDR multidrug resistance, ATB antibiotics and AKI acute kidney injury"
 
-myplot <- plot_my_model(m_30D_effective_7d)
-plotac <- "fig_x04v2"
-myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+myplot <- plot_my_model(
+  m_30D_effective_7d_2017, 
+  axis.lim = c(0.49, 4.5)
+  )
+
+
+plotac <- "fig_x16"
+myplot <- save_plot(myplot, plotac, width = 5.4, height = 6.0)
 myplot
 ```
 
@@ -1203,10 +1458,12 @@ match_model <- MatchIt::matchit(
   replace = FALSE,
   estimand = "ATT"
 )
+
 match_summary <- summary(match_model, standardize = TRUE)
 matched_data <- MatchIt::match_data(match_model) |>
   data.frame()
 ```
+
 The 2017+ subset retains complete pairs from all-years matching
 
 Create the 2017+ subsets and show sample sizes.
@@ -1238,38 +1495,9 @@ kableExtra::kable(
 
 ## Exploration, all
 
-### Clostridioides difficile infection
+### Safety outcomes
 
-Show the number and percentage of patients with recorded clostridial infection by sensitivity ATB duration, before and after matching. No additional time window is imposed on the existing infection indicator.
-
-```{r}
-clostridium_summary_all <- dplyr::bind_rows(
-  "Before matching" = matching_data,
-  "After matching" = matched_data,
-  .id = "cohort"
-) |>
-  dplyr::group_by(
-    cohort,
-    treatment_group
-  ) |>
-  dplyr::summarise(
-    patients = dplyr::n(),
-    known_status = sum(!is.na(clostridium)),
-    missing_status = sum(is.na(clostridium)),
-    infections = sum(clostridium == 1, na.rm = TRUE),
-    .groups = "drop"
-  ) |>
-  dplyr::mutate(
-    infection_percent = 100 * infections / known_status
-  ) |>
-  data.frame()
-
-kableExtra::kable(
-  clostridium_summary_all,
-  digits = 1,
-  caption = "All years. Recorded clostridial infection by sensitivity ATB duration before and after matching. cohort identifies the analysis population; treatment_group distinguishes <=13 and >13 days. patients is the group size; known_status and missing_status count available and missing infection indicators; infections counts patients coded 1; infection_percent is the percentage with infection among patients with known status. These are patient proportions, not person-time incidence rates; no additional restriction on infection timing was applied"
-)
-```
+See the Safety outcomes chapter for infections and readmissions within 30 and 90 days after therapy completion
 
 ### Observed treatment duration after matching
 
@@ -1312,12 +1540,13 @@ kableExtra::kable(
   caption = "All years. Observed antibiotic treatment duration in the matched cohort. treatment_group is defined by sensitivity ATB duration: short <=13 days and long >13 days. ATB_sensitivity_duration is the interval from sensitivity ATB initiation to therapy completion; ATB_duration_overall is the interval from overall ATB initiation to completion. patients is the group size; available counts nonmissing durations; median_days is the median; q25_days and q75_days are the lower and upper quartiles; min_days and max_days give the observed range. All durations are in days"
 )
 ```
+
 ### Balance, all
 
 Check balance
 
-```{r, fig.height=8, fig.width=9}
-#| fig-cap: "Figure 17. All years. Covariate balance before and after matching. Points show absolute standardized mean differences, standardized by the pre-matching short-treatment group in the displayed cohort; colours distinguish before and after matching. The dashed line marks 0.1. Original all-years matching weights are retained; no rematching is performed"
+```{r, fig.height=6.7, fig.width=6.1}
+#| fig-cap: "Figure 17. All years. Covariate balance before and after matching. Points show absolute standardized mean differences, standardized by the pre-matching short-treatment group in the displayed cohort; colours distinguish before and after matching. The dashed line marks 0.1. Original all-years matching weights are retained; no rematching is performed. TX denotes transplantation, MDR multidrug resistance, ATB antibiotics and AKI acute kidney injury. Obstruction risk factors is the umbrella category; subvesical obstruction includes urethral stricture. Ureteral stent denotes a stent in situ at discharge"
 
 matching_balance_all <- summary(
   match_model,
@@ -1354,11 +1583,16 @@ myplot <- ggplot(
 ) +
   geom_vline(xintercept = 0.1, linetype = "dashed", colour = "grey50") +
   geom_point() +
+  scale_y_discrete(labels = function(x) {
+    dplyr::coalesce(unname(plot_labels_dict[x]), x)
+  }) +
   scale_colour_manual(values = c("#A65F35", "#477DA0")) +
   labs(x = "Absolute standardized mean difference", y = NULL,
        colour = NULL)
-plotac <- "fig_matching_balance_all"
-myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+
+plotac <- "fig_x17_matching"
+
+myplot <- save_plot(myplot, plotac, width = 6.1, height = 6.7)
 myplot
 ```
 
@@ -1489,8 +1723,8 @@ kableExtra::kable(
 
 Show the overall pair-stratified log-rank p-value and the two Holm-adjusted post-hoc p-values. Shading represents pointwise confidence intervals for each curve.
 
-```{r, fig.height=7, fig.width=7}
-#| fig-cap: "Figure 18. All years. Recurrence-free survival through 90 days after therapy completion in the cohort matched 1:1 on propensity score. Curves are unadjusted Kaplan–Meier estimates for sensitivity ATB duration <=13 and >13 days; shading shows pointwise 95% confidence intervals calculated using Greenwood variance and the log-log transformation. Tick marks indicate censoring and the lower panel shows patients at risk. Vertical dashed lines mark days 30 and 90. The overall p-value is from a log-rank test stratified by matched pair; post-hoc p-values compare recurrence proportions by days 30 and 90 using two-sided exact McNemar tests with Holm adjustment across these two comparisons"
+```{r, fig.height=5.5, fig.width=6}
+#| fig-cap: "Figure 18. All years. Recurrence-free survival through 90 days after therapy completion in the cohort matched 1:1 on propensity score. Curves are unadjusted Kaplan–Meier estimates for sensitivity ATB duration <=13 and >13 days; shading shows pointwise 95% confidence intervals calculated using Greenwood variance and the log-log transformation. Tick marks indicate censoring and the lower panel shows patients at risk. Vertical dashed lines mark days 30 and 90. The overall p-value is from a log-rank test stratified by matched pair; post-hoc p-values compare recurrence proportions by days 30 and 90 using two-sided exact McNemar tests with Holm adjustment across these two comparisons. Therapy duration denotes days of treatment with an antibiotic to which the isolated organism was susceptible in vitro"
 
 km_p_text_all <- paste0(
   "Pair-stratified log-rank p = ",
@@ -1513,18 +1747,18 @@ myplot <- survminer::ggsurvplot(
   km_matched_90D_all,
   data = matched_survival_all,
   pval = km_p_text_all,
-  pval.coord = c(3, 0.15),
-  pval.size = 3.5,
+  pval.coord = c(40, 0.15),
+  pval.size = 3.7,
   conf.int = TRUE,
   risk.table = TRUE,
   risk.table.y.text.col = FALSE,
-  risk.table.fontsize = 3.2,
+  risk.table.fontsize = 3.6,
   censor.shape = 124,
   censor.size = 2,
   palette = c("#477DA0", "#A65F35"),
   xlab = "Days from the end of therapy",
   ylab = "Probability of remaining recurrence-free",
-  legend.title = "All years. Sensitivity ATB duration",
+  legend.title = "Therapy duration",
   legend.labs = c(">13 days", "<=13 days"),
   break.time.by = 15,
   xlim = c(0, 90),
@@ -1538,6 +1772,24 @@ myplot$plot <- myplot$plot +
     colour = "grey50"
   )
 
+myplot$plot <- myplot$plot +
+  theme(
+    plot.title = element_text(size = 12),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_text(size = 11)
+  )
+
+myplot$table <- myplot$table +
+  theme(
+    plot.title = element_text(size = 10),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_text(size = 11)
+  )
+
 myplot <- cowplot::plot_grid(
   myplot$plot,
   myplot$table + theme(legend.position = "none"),
@@ -1547,8 +1799,10 @@ myplot <- cowplot::plot_grid(
   axis = "lr"
 )
 
-plotac <- "fig_x25_all"
-myplot <- save_plot(myplot, plotac, width = 7, height = 7)
+
+
+plotac <- "fig_x18_KM"
+myplot <- save_plot(myplot, plotac, width = 6, height = 5.5)
 myplot
 ```
 
@@ -1623,38 +1877,9 @@ kableExtra::kable(
 
 ## Exploration, 2017+
 
-### Clostridioides difficile infection
+### Safety outcomes
 
-Show the number and percentage of patients with recorded clostridial infection by sensitivity ATB duration, before and after matching. No additional time window is imposed on the existing infection indicator.
-
-```{r}
-clostridium_summary_2017 <- dplyr::bind_rows(
-  "Before matching" = matching_data_2017,
-  "After matching" = matched_data_2017,
-  .id = "cohort"
-) |>
-  dplyr::group_by(
-    cohort,
-    treatment_group
-  ) |>
-  dplyr::summarise(
-    patients = dplyr::n(),
-    known_status = sum(!is.na(clostridium)),
-    missing_status = sum(is.na(clostridium)),
-    infections = sum(clostridium == 1, na.rm = TRUE),
-    .groups = "drop"
-  ) |>
-  dplyr::mutate(
-    infection_percent = 100 * infections / known_status
-  ) |>
-  data.frame()
-
-kableExtra::kable(
-  clostridium_summary_2017,
-  digits = 1,
-  caption = "2017+. Recorded clostridial infection by sensitivity ATB duration before and after matching. cohort identifies the analysis population; treatment_group distinguishes <=13 and >13 days. patients is the group size; known_status and missing_status count available and missing infection indicators; infections counts patients coded 1; infection_percent is the percentage with infection among patients with known status. These are patient proportions, not person-time incidence rates; no additional restriction on infection timing was applied"
-)
-```
+See the Safety outcomes chapter for infections and readmissions within 30 and 90 days after therapy completion
 
 ### Observed treatment duration after matching
 
@@ -1697,12 +1922,13 @@ kableExtra::kable(
   caption = "2017+. Observed antibiotic treatment duration in the matched cohort. treatment_group is defined by sensitivity ATB duration: short <=13 days and long >13 days. ATB_sensitivity_duration is the interval from sensitivity ATB initiation to therapy completion; ATB_duration_overall is the interval from overall ATB initiation to completion. patients is the group size; available counts nonmissing durations; median_days is the median; q25_days and q75_days are the lower and upper quartiles; min_days and max_days give the observed range. All durations are in days"
 )
 ```
+
 ### Balance, 2017+
 
 Check balance
 
-```{r, fig.height=8, fig.width=9}
-#| fig-cap: "Figure 19. 2017+. Covariate balance before and after matching. Points show absolute standardized mean differences, standardized by the pre-matching short-treatment group in the displayed cohort; colours distinguish before and after matching. The dashed line marks 0.1. Original all-years matching weights are retained; no rematching is performed"
+```{r, fig.height=6.7, fig.width=6.1}
+#| fig-cap: "Figure 19. 2017+. Covariate balance before and after matching. Points show absolute standardized mean differences, standardized by the pre-matching short-treatment group in the displayed cohort; colours distinguish before and after matching. The dashed line marks 0.1. Original all-years matching weights are retained; no rematching is performed. TX denotes transplantation, MDR multidrug resistance, ATB antibiotics and AKI acute kidney injury. Obstruction risk factors is the umbrella category; subvesical obstruction includes urethral stricture. Ureteral stent denotes a stent in situ at discharge"
 
 matching_keep_2017 <- matching_data$calendar_year >= 2017
 match_model_balance_2017 <- match_model
@@ -1764,11 +1990,15 @@ myplot <- ggplot(
 ) +
   geom_vline(xintercept = 0.1, linetype = "dashed", colour = "grey50") +
   geom_point() +
+  scale_y_discrete(labels = function(x) {
+    dplyr::coalesce(unname(plot_labels_dict[x]), x)
+  }) +
   scale_colour_manual(values = c("#A65F35", "#477DA0")) +
   labs(x = "Absolute standardized mean difference", y = NULL,
        colour = NULL)
-plotac <- "fig_matching_balance_2017"
-myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+
+plotac <- "fig_x19_balance"
+myplot <- save_plot(myplot, plotac, width = 6.1, height = 6.7)
 myplot
 ```
 
@@ -1891,8 +2121,8 @@ kableExtra::kable(
 
 ### Plot the matched survival curves
 
-```{r, fig.height=7, fig.width=7}
-#| fig-cap: "Figure 20. 2017+. Recurrence-free survival through 90 days after therapy completion in the cohort matched 1:1 on propensity score. Curves are unadjusted Kaplan–Meier estimates for sensitivity ATB duration <=13 and >13 days; shading shows pointwise 95% confidence intervals calculated using Greenwood variance and the log-log transformation. Tick marks indicate censoring and the lower panel shows patients at risk. Vertical dashed lines mark days 30 and 90. The overall p-value is from a log-rank test stratified by matched pair; post-hoc p-values compare recurrence proportions by days 30 and 90 using two-sided exact McNemar tests with Holm adjustment across these two comparisons"
+```{r, fig.height=6, fig.width=5.5}
+#| fig-cap: "Figure 20. 2017+. Recurrence-free survival through 90 days after therapy completion in the cohort matched 1:1 on propensity score. Curves are unadjusted Kaplan–Meier estimates for sensitivity ATB duration <=13 and >13 days; shading shows pointwise 95% confidence intervals calculated using Greenwood variance and the log-log transformation. Tick marks indicate censoring and the lower panel shows patients at risk. Vertical dashed lines mark days 30 and 90. The overall p-value is from a log-rank test stratified by matched pair; post-hoc p-values compare recurrence proportions by days 30 and 90 using two-sided exact McNemar tests with Holm adjustment across these two comparisons. Therapy duration denotes days of treatment with an antibiotic to which the isolated organism was susceptible in vitro"
 
 km_p_text_2017 <- paste0(
   "Pair-stratified log-rank p = ",
@@ -1915,23 +2145,41 @@ myplot <- survminer::ggsurvplot(
   km_matched_90D_2017,
   data = matched_survival_2017,
   pval = km_p_text_2017,
-  pval.coord = c(3, 0.15),
-  pval.size = 3.5,
+  pval.coord = c(40, 0.15),
+  pval.size = 3.7,
   conf.int = TRUE,
   risk.table = TRUE,
   risk.table.y.text.col = FALSE,
-  risk.table.fontsize = 3.2,
+  risk.table.fontsize = 3.6,
   censor.shape = 124,
   censor.size = 2,
   palette = c("#477DA0", "#A65F35"),
   xlab = "Days from the end of therapy",
   ylab = "Probability of remaining recurrence-free",
-  legend.title = "2017+. Sensitivity ATB duration",
+  legend.title = "Therapy duration",
   legend.labs = c(">13 days", "<=13 days"),
   break.time.by = 15,
   xlim = c(0, 90),
   ggtheme = theme_grey()
 )
+
+myplot$plot <- myplot$plot +
+  theme(
+    plot.title = element_text(size = 12),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_text(size = 11)
+  )
+
+myplot$table <- myplot$table +
+  theme(
+    plot.title = element_text(size = 11),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_text(size = 11)
+  )
 
 myplot$plot <- myplot$plot +
   geom_vline(
@@ -1950,7 +2198,7 @@ myplot <- cowplot::plot_grid(
 )
 
 plotac <- "fig_x25_2017"
-myplot <- save_plot(myplot, plotac, width = 7, height = 7)
+myplot <- save_plot(myplot, plotac, width = 6, height = 5.5)
 myplot
 ```
 
@@ -2086,11 +2334,6 @@ relapse_sample <- data.frame(
   eligible = nrow(relapse_data),
   unknown_relapse = sum(is.na(relapse_data$relapse_30D))
 )
-
-kableExtra::kable(
-  relapse_sample,
-  caption = "Relapse analysis cohort. available is the original analysis cohort; excluded_initial_agent counts patients without an identified initial pathogen under the stated rules; eligible is the retained cohort; unknown_relapse counts patients whose relapse status cannot be determined from the existing recurrence and concordance indicators"
-)
 ```
 
 ### Repeat propensity-score matching
@@ -2175,8 +2418,8 @@ kableExtra::kable(
 
 Check balance
 
-```{r, fig.height=8, fig.width=9}
-#| fig-cap: "Figure 21. All years. Covariate balance before and after matching. Points show absolute standardized mean differences, standardized by the pre-matching short-treatment group in the displayed cohort; colours distinguish before and after matching. The dashed line marks 0.1. Original all-years matching weights are retained; no rematching is performed"
+```{r, fig.height=6.7, fig.width=6.1}
+#| fig-cap: "Figure 21. All years. Covariate balance before and after matching. Points show absolute standardized mean differences, standardized by the pre-matching short-treatment group in the displayed cohort; colours distinguish before and after matching. The dashed line marks 0.1. Original all-years matching weights are retained; no rematching is performed. TX denotes transplantation, MDR multidrug resistance, ATB antibiotics and AKI acute kidney injury. Obstruction risk factors is the umbrella category; subvesical obstruction includes urethral stricture. Ureteral stent denotes a stent in situ at discharge"
 
 relapse_balance_all <- summary(
   match_relapse,
@@ -2214,11 +2457,15 @@ myplot <- ggplot(
 ) +
   geom_vline(xintercept = 0.1, linetype = "dashed", colour = "grey50") +
   geom_point() +
+  scale_y_discrete(labels = function(x) {
+    dplyr::coalesce(unname(plot_labels_dict[x]), x)
+  }) +
   scale_colour_manual(values = c("#A65F35", "#477DA0")) +
   labs(x = "Absolute standardized mean difference", y = NULL,
        colour = NULL)
-plotac <- "fig_relapse_balance_all"
-myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+
+plotac <- "fig_x21"
+myplot <- save_plot(myplot, plotac, width = 6.1, height = 6.7)
 myplot
 ```
 
@@ -2381,37 +2628,92 @@ kableExtra::kable(
 )
 ```
 
+#### Post-hoc comparisons at days 30 and 90
+
+Compare relapse proportions within matched pairs at both follow-up times.
+
+```{r}
+relapse_pairs_all <- matched_relapse_survival_all |>
+  dplyr::transmute(
+    subclass,
+    treatment = dplyr::if_else(
+      treatment_under14D == 1, "short", "long"
+    ),
+    relapse_30D,
+    relapse_90D
+  ) |>
+  tidyr::pivot_longer(
+    cols = c(relapse_30D, relapse_90D),
+    names_to = "outcome",
+    values_to = "event"
+  ) |>
+  dplyr::mutate(
+    day = dplyr::if_else(outcome == "relapse_30D", 30, 90)
+  ) |>
+  dplyr::select(-outcome) |>
+  tidyr::pivot_wider(
+    names_from = treatment,
+    values_from = event
+  ) |>
+  data.frame()
+
+relapse_posthoc_all <- relapse_pairs_all |>
+  dplyr::group_by(day) |>
+  dplyr::summarise(
+    pairs = sum(!is.na(short) & !is.na(long)),
+    incomplete_pairs = sum(is.na(short) | is.na(long)),
+    short_only = sum(short == 1 & long == 0, na.rm = TRUE),
+    long_only = sum(short == 0 & long == 1, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  dplyr::rowwise() |>
+  dplyr::mutate(
+    p_value = if (pairs == 0) {
+      NA_real_
+    } else if (short_only + long_only == 0) {
+      1
+    } else {
+      binom.test(
+        short_only,
+        short_only + long_only,
+        p = 0.5,
+        alternative = "two.sided"
+      )$p.value
+    }
+  ) |>
+  dplyr::ungroup() |>
+  dplyr::mutate(
+    p_holm = p.adjust(p_value, method = "holm", n = 2)
+  ) |>
+  dplyr::arrange(day) |>
+  data.frame()
+
+kableExtra::kable(
+  relapse_posthoc_all,
+  digits = 3,
+  caption = "All years. Post-hoc comparisons of relapse within 30 and 90 days after therapy completion in the matched cohort. day is the follow-up limit; pairs counts matched pairs with both outcomes known; incomplete_pairs counts pairs not used in that comparison because at least one outcome is missing. short_only and long_only count pairs with relapse only in the patient treated for <=13 or >13 days, respectively. p_value is the two-sided exact McNemar p-value; p_holm applies Holm adjustment across the two comparisons"
+)
+```
+
 #### Survival curves
 
-Show the Kaplan–Meier curves, numbers at risk, and hazard ratios for both follow-up windows.
-
-```{r, fig.height=7, fig.width=7}
-#| fig-cap: "Figure 22. All years. Relapse-free survival through 90 days after therapy completion in propensity-score-matched patients with an identified initial pathogen. Relapse requires recurrence with concordant pathogens. Curves are Kaplan–Meier estimates; shaded regions show pointwise 95% confidence intervals based on Greenwood variance with a log-log transformation. Tick marks indicate censoring, the vertical dashed line marks day 30, and the table shows numbers at risk. Displayed HRs compare <=13 with >13 days of sensitivity ATB treatment and come from separate treatment-only Cox models over days 0–30 and 0–90, with matched-pair-clustered robust Wald 95% confidence intervals. The displayed log-rank p-value is stratified by matched pair and covers 90 days"
+```{r, fig.height=5.5, fig.width=6}
+#| fig-cap: "Figure 22. All years. Relapse-free survival through 90 days after therapy completion in propensity-score-matched patients with an identified initial pathogen. Relapse requires recurrence with concordant pathogens. Curves are Kaplan–Meier estimates; shaded regions show pointwise 95% confidence intervals based on Greenwood variance with a log-log transformation. Tick marks indicate censoring, the vertical dashed line marks day 30, and the table shows numbers at risk. The overall p-value is from a log-rank test stratified by matched pair over 90 days; post-hoc p-values compare relapse proportions by days 30 and 90 using two-sided exact McNemar tests with Holm adjustment across these two comparisons. Therapy duration denotes days of treatment with an antibiotic to which the isolated organism was susceptible in vitro"
 
 relapse_p_text_all <- paste0(
-  "Pair-stratified log-rank (90 days) p ",
-  ifelse(
-    relapse_logrank_p_all < 0.001,
-    "< 0.001",
-    paste0("= ", formatC(
-      relapse_logrank_p_all,
-      format = "f",
-      digits = 3
-    ))
+  "Pair-stratified log-rank p = ",
+  format.pval(relapse_logrank_p_all, digits = 3, eps = 0),
+  "\nDay 30, post-hoc p (Holm) = ",
+  format.pval(
+    relapse_posthoc_all$p_holm[relapse_posthoc_all$day == 30],
+    digits = 3,
+    eps = 0
   ),
-  "\n",
-  sprintf(
-    "HR 0–30 days: %.3f (95%% CI %.3f to %.3f)",
-    relapse_hr_30D_all$HR,
-    relapse_hr_30D_all$lower,
-    relapse_hr_30D_all$upper
-  ),
-  "\n",
-  sprintf(
-    "HR 0–90 days: %.3f (95%% CI %.3f to %.3f)",
-    relapse_hr_90D_all$HR,
-    relapse_hr_90D_all$lower,
-    relapse_hr_90D_all$upper
+  "\nDay 90, post-hoc p (Holm) = ",
+  format.pval(
+    relapse_posthoc_all$p_holm[relapse_posthoc_all$day == 90],
+    digits = 3,
+    eps = 0
   )
 )
 
@@ -2419,18 +2721,18 @@ myplot <- survminer::ggsurvplot(
   km_relapse_90D_all,
   data = matched_relapse_survival_all,
   pval = relapse_p_text_all,
-  pval.coord = c(3, 0.15),
-  pval.size = 3.5,
+  pval.coord = c(40, 0.15),
+  pval.size = 3.7,
   conf.int = TRUE,
   risk.table = TRUE,
   risk.table.y.text.col = FALSE,
-  risk.table.fontsize = 3.2,
+  risk.table.fontsize = 3.6,
   censor.shape = 124,
   censor.size = 2,
   palette = c("#477DA0", "#A65F35"),
   xlab = "Days from the end of therapy",
   ylab = "Probability of remaining relapse-free",
-  legend.title = "All years. Sensitivity ATB duration",
+  legend.title = "Therapy duration",
   legend.labs = c("Long (>13 days)", "Short (<=13 days)"),
   break.time.by = 15,
   xlim = c(0, 90),
@@ -2438,10 +2740,26 @@ myplot <- survminer::ggsurvplot(
 )
 
 myplot$plot <- myplot$plot +
+  theme(
+    plot.title = element_text(size = 12),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_text(size = 11)
+  ) +
   geom_vline(
     xintercept = 30,
     linetype = "dashed",
     colour = "grey50"
+  )
+
+myplot$table <- myplot$table +
+  theme(
+    plot.title = element_text(size = 11),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_text(size = 11)
   )
 
 myplot <- cowplot::plot_grid(
@@ -2453,18 +2771,35 @@ myplot <- cowplot::plot_grid(
   axis = "lr"
 )
 
-plotac <- "fig_relapse_survival_90D_all"
-myplot <- save_plot(myplot, plotac, width = 7, height = 7)
+plotac <- "fig_x22_relapse_survival_90D_all"
+myplot <- save_plot(myplot, plotac, width = 6, height = 5.5)
 myplot
 ```
+
+#### HR
+
+```{r}
+relapse_hr_table_all <- dplyr::bind_rows(
+  relapse_hr_30D_all,
+  relapse_hr_90D_all
+) |>
+  data.frame()
+
+kableExtra::kable(
+  relapse_hr_table_all,
+  digits = 3,
+  caption = "All years. Relapse hazard ratios from separate treatment-only Cox models covering days 0–30 and 0–90 after therapy completion, with robust variance clustered by matched pair. window identifies the follow-up interval; comparison specifies the treatment contrast. HR states how many times the relapse hazard changes from >13 to <=13 days of sensitivity ATB therapy; HR >1 indicates higher hazard with shorter treatment. n is the number of patients analysed; events counts relapses; lower and upper are the robust Wald 95% confidence limits; p_value is the two-sided robust Wald p-value without multiplicity adjustment"
+)
+```
+
 ## Relapse after matching, 2017+
 
 ### Balance, 2017+
 
 Check balance
 
-```{r, fig.height=8, fig.width=9}
-#| fig-cap: "Figure 23. 2017+. Covariate balance before and after matching. Points show absolute standardized mean differences, standardized by the pre-matching short-treatment group in the displayed cohort; colours distinguish before and after matching. The dashed line marks 0.1. Original all-years matching weights are retained; no rematching is performed"
+```{r, fig.height=6.7, fig.width=6.1}
+#| fig-cap: "Figure 23. 2017+. Covariate balance before and after matching. Points show absolute standardized mean differences, standardized by the pre-matching short-treatment group in the displayed cohort; colours distinguish before and after matching. The dashed line marks 0.1. Original all-years matching weights are retained; no rematching is performed. TX denotes transplantation, MDR multidrug resistance, ATB antibiotics and AKI acute kidney injury. Obstruction risk factors is the umbrella category; subvesical obstruction includes urethral stricture. Ureteral stent denotes a stent in situ at discharge"
 
 relapse_keep_2017 <- relapse_data$calendar_year >= 2017
 match_relapse_balance_2017 <- match_relapse
@@ -2527,11 +2862,15 @@ myplot <- ggplot(
 ) +
   geom_vline(xintercept = 0.1, linetype = "dashed", colour = "grey50") +
   geom_point() +
+  scale_y_discrete(labels = function(x) {
+    dplyr::coalesce(unname(plot_labels_dict[x]), x)
+  }) +
   scale_colour_manual(values = c("#A65F35", "#477DA0")) +
   labs(x = "Absolute standardized mean difference", y = NULL,
        colour = NULL)
-plotac <- "fig_relapse_balance_2017"
-myplot <- save_plot(myplot, plotac, width = 9, height = 8)
+
+plotac <- "fig_x23_relapse_2017plus"
+myplot <- save_plot(myplot, plotac, width = 6.1, height = 6.7)
 myplot
 ```
 
@@ -2694,37 +3033,92 @@ kableExtra::kable(
 )
 ```
 
+#### Post-hoc comparisons at days 30 and 90
+
+
+```{r}
+relapse_pairs_2017 <- matched_relapse_survival_2017 |>
+  dplyr::transmute(
+    subclass,
+    treatment = dplyr::if_else(
+      treatment_under14D == 1, "short", "long"
+    ),
+    relapse_30D,
+    relapse_90D
+  ) |>
+  tidyr::pivot_longer(
+    cols = c(relapse_30D, relapse_90D),
+    names_to = "outcome",
+    values_to = "event"
+  ) |>
+  dplyr::mutate(
+    day = dplyr::if_else(outcome == "relapse_30D", 30, 90)
+  ) |>
+  dplyr::select(-outcome) |>
+  tidyr::pivot_wider(
+    names_from = treatment,
+    values_from = event
+  ) |>
+  data.frame()
+
+relapse_posthoc_2017 <- relapse_pairs_2017 |>
+  dplyr::group_by(day) |>
+  dplyr::summarise(
+    pairs = sum(!is.na(short) & !is.na(long)),
+    incomplete_pairs = sum(is.na(short) | is.na(long)),
+    short_only = sum(short == 1 & long == 0, na.rm = TRUE),
+    long_only = sum(short == 0 & long == 1, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  dplyr::rowwise() |>
+  dplyr::mutate(
+    p_value = if (pairs == 0) {
+      NA_real_
+    } else if (short_only + long_only == 0) {
+      1
+    } else {
+      binom.test(
+        short_only,
+        short_only + long_only,
+        p = 0.5,
+        alternative = "two.sided"
+      )$p.value
+    }
+  ) |>
+  dplyr::ungroup() |>
+  dplyr::mutate(
+    p_holm = p.adjust(p_value, method = "holm", n = 2)
+  ) |>
+  dplyr::arrange(day) |>
+  data.frame()
+
+kableExtra::kable(
+  relapse_posthoc_2017,
+  digits = 3,
+  caption = "2017+. Post-hoc comparisons of relapse within 30 and 90 days after therapy completion in the matched cohort. day is the follow-up limit; pairs counts matched pairs with both outcomes known; incomplete_pairs counts pairs not used in that comparison because at least one outcome is missing. short_only and long_only count pairs with relapse only in the patient treated for <=13 or >13 days, respectively. p_value is the two-sided exact McNemar p-value; p_holm applies Holm adjustment across the two comparisons"
+)
+```
+
 #### Survival curves
 
-Show the Kaplan–Meier curves, numbers at risk, and hazard ratios for both follow-up windows.
 
-```{r, fig.height=7, fig.width=7}
-#| fig-cap: "Figure 24. 2017+. Relapse-free survival through 90 days after therapy completion in propensity-score-matched patients with an identified initial pathogen. Relapse requires recurrence with concordant pathogens. Curves are Kaplan–Meier estimates; shaded regions show pointwise 95% confidence intervals based on Greenwood variance with a log-log transformation. Tick marks indicate censoring, the vertical dashed line marks day 30, and the table shows numbers at risk. Displayed HRs compare <=13 with >13 days of sensitivity ATB treatment and come from separate treatment-only Cox models over days 0–30 and 0–90, with matched-pair-clustered robust Wald 95% confidence intervals. The displayed log-rank p-value is stratified by matched pair and covers 90 days"
+```{r, fig.height=5.5, fig.width=6}
+#| fig-cap: "Figure 24. 2017+. Relapse-free survival through 90 days after therapy completion in propensity-score-matched patients with an identified initial pathogen. Relapse requires recurrence with concordant pathogens. Curves are Kaplan–Meier estimates; shaded regions show pointwise 95% confidence intervals based on Greenwood variance with a log-log transformation. Tick marks indicate censoring, the vertical dashed line marks day 30, and the table shows numbers at risk. The overall p-value is from a log-rank test stratified by matched pair over 90 days; post-hoc p-values compare relapse proportions by days 30 and 90 using two-sided exact McNemar tests with Holm adjustment across these two comparisons. Therapy duration denotes days of treatment with an antibiotic to which the isolated organism was susceptible in vitro"
 
 relapse_p_text_2017 <- paste0(
-  "Pair-stratified log-rank (90 days) p ",
-  ifelse(
-    relapse_logrank_p_2017 < 0.001,
-    "< 0.001",
-    paste0("= ", formatC(
-      relapse_logrank_p_2017,
-      format = "f",
-      digits = 3
-    ))
+  "Pair-stratified log-rank p = ",
+  format.pval(relapse_logrank_p_2017, digits = 3, eps = 0),
+  "\nDay 30, post-hoc p (Holm) = ",
+  format.pval(
+    relapse_posthoc_2017$p_holm[relapse_posthoc_2017$day == 30],
+    digits = 3,
+    eps = 0
   ),
-  "\n",
-  sprintf(
-    "HR 0–30 days: %.3f (95%% CI %.3f to %.3f)",
-    relapse_hr_30D_2017$HR,
-    relapse_hr_30D_2017$lower,
-    relapse_hr_30D_2017$upper
-  ),
-  "\n",
-  sprintf(
-    "HR 0–90 days: %.3f (95%% CI %.3f to %.3f)",
-    relapse_hr_90D_2017$HR,
-    relapse_hr_90D_2017$lower,
-    relapse_hr_90D_2017$upper
+  "\nDay 90, post-hoc p (Holm) = ",
+  format.pval(
+    relapse_posthoc_2017$p_holm[relapse_posthoc_2017$day == 90],
+    digits = 3,
+    eps = 0
   )
 )
 
@@ -2732,18 +3126,18 @@ myplot <- survminer::ggsurvplot(
   km_relapse_90D_2017,
   data = matched_relapse_survival_2017,
   pval = relapse_p_text_2017,
-  pval.coord = c(3, 0.15),
-  pval.size = 3.5,
+  pval.coord = c(40, 0.15),
+  pval.size = 3.7,
   conf.int = TRUE,
   risk.table = TRUE,
   risk.table.y.text.col = FALSE,
-  risk.table.fontsize = 3.2,
+  risk.table.fontsize = 3.6,
   censor.shape = 124,
   censor.size = 2,
   palette = c("#477DA0", "#A65F35"),
   xlab = "Days from the end of therapy",
   ylab = "Probability of remaining relapse-free",
-  legend.title = "2017+. Sensitivity ATB duration",
+  legend.title = "Therapy duration",
   legend.labs = c("Long (>13 days)", "Short (<=13 days)"),
   break.time.by = 15,
   xlim = c(0, 90),
@@ -2751,10 +3145,26 @@ myplot <- survminer::ggsurvplot(
 )
 
 myplot$plot <- myplot$plot +
+  theme(
+    plot.title = element_text(size = 12),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_text(size = 11)
+  ) +
   geom_vline(
     xintercept = 30,
     linetype = "dashed",
     colour = "grey50"
+  )
+
+myplot$table <- myplot$table +
+  theme(
+    plot.title = element_text(size = 11),
+    axis.title.x = element_text(size = 12),
+    axis.title.y = element_text(size = 12),
+    axis.text.x = element_text(size = 11),
+    axis.text.y = element_text(size = 11)
   )
 
 myplot <- cowplot::plot_grid(
@@ -2766,11 +3176,158 @@ myplot <- cowplot::plot_grid(
   axis = "lr"
 )
 
-plotac <- "fig_relapse_survival_90D_2017"
-myplot <- save_plot(myplot, plotac, width = 7, height = 7)
+plotac <- "fig_x24"
+myplot <- save_plot(myplot, plotac, width = 6, height = 5.5)
 myplot
 ```
 
+# Safety outcomes
+
+Report patient proportions within 30 and 90 days after therapy completion in the full and primary matched cohorts, with the same analyses for 2017+. Events on or before therapy completion are excluded. Empty source entries retain the agreed coding of no event. An affirmative 90-day readmission entry without a date is counted at 90 days, but its 30-day status remains unknown. A recorded clostridial infection without a date cannot establish a post-treatment event and is reported as unknown. No dates are imputed.
+
+## Available timing
+
+Show records that cannot be assigned to a post-treatment window. Dates on the final treatment day are shown separately because their within-day order is unknown.
+
+```{r}
+safety_timing <- data_analysis |>
+  dplyr::summarise(
+    clostridium_positive_without_date = sum(
+      clostridium == 1 & is.na(ClostridiumDate), na.rm = TRUE
+    ),
+    uti_readmission_positive_without_date = sum(
+      readmission_90d_uti == 1 & is.na(ReadmissionDate_uti),
+      na.rm = TRUE
+    ),
+    other_readmission_positive_without_date = sum(
+      readmission_90d_other == 1 & is.na(ReadmissionDate_other),
+      na.rm = TRUE
+    ),
+    clostridium_on_final_treatment_day = sum(
+      clostridium_days_after_therapy == 0, na.rm = TRUE
+    ),
+    clostridium_before_therapy_end = sum(
+      clostridium_days_after_therapy < 0, na.rm = TRUE
+    )
+  ) |>
+  tidyr::pivot_longer(
+    dplyr::everything(),
+    names_to = "timing_issue",
+    values_to = "patients"
+  ) |>
+  data.frame()
+
+kableExtra::kable(
+  safety_timing,
+  caption = "Safety timing. timing_issue identifies positive records without an event date or clostridial infections occurring on or before the final treatment day; patients counts affected records. These records are retained in the cohort, but unknown timing is not recoded as absence"
+)
+```
+
+## Summary function
+
+Use the same definitions and denominators in each cohort. Any readmission means at least one UTI-related or other recorded readmission, with each patient counted once.
+
+```{r}
+safety_labels <- c(
+  clostridium_30D = "Clostridial infection, 30 days",
+  clostridium_90D = "Clostridial infection, 90 days",
+  readmission_uti_30D = "Readmission for UTI, 30 days",
+  readmission_uti_90D = "Readmission for UTI, 90 days",
+  readmission_other_30D = "Readmission for another reason, 30 days",
+  readmission_other_90D = "Readmission for another reason, 90 days",
+  readmission_any_30D = "Any readmission, 30 days",
+  readmission_any_90D = "Any readmission, 90 days"
+)
+
+safety_table <- function(data) {
+  data |>
+    dplyr::select(
+      treatment_group,
+      dplyr::all_of(names(safety_labels))
+    ) |>
+    tidyr::pivot_longer(
+      -treatment_group,
+      names_to = "outcome",
+      values_to = "event"
+    ) |>
+    dplyr::group_by(
+      treatment_group,
+      outcome
+    ) |>
+    dplyr::summarise(
+      patients = dplyr::n(),
+      known = sum(!is.na(event)),
+      unknown = sum(is.na(event)),
+      events = sum(event == 1, na.rm = TRUE),
+      percent = 100 * events / known,
+      .groups = "drop"
+    ) |>
+    dplyr::mutate(
+      outcome = factor(
+        outcome,
+        levels = names(safety_labels),
+        labels = unname(safety_labels)
+      )
+    ) |>
+    dplyr::arrange(
+      outcome,
+      treatment_group
+    ) |>
+    data.frame()
+}
+```
+
+## Full cohort, all
+
+Show safety outcomes in all analysed patients.
+
+```{r}
+safety_all <- safety_table(data_analysis)
+kableExtra::kable(
+  safety_all,
+  digits = 1,
+  caption = "Safety outcomes after therapy completion, full cohort. treatment_group compares sensitivity ATB duration <=13 with >13 days; outcome specifies the event and follow-up window. patients is the group size, known and unknown count assessable and unassessable outcomes, events is the number affected, and percent is 100 × events/known. These are patient proportions, not person-time incidence rates"
+)
+```
+
+## Matched cohort, all
+
+Show safety outcomes in the original 1:1 matched pairs.
+
+```{r}
+safety_matched_all <- safety_table(matched_data)
+kableExtra::kable(
+  safety_matched_all,
+  digits = 1,
+  caption = "Safety outcomes after therapy completion, primary matched cohort. treatment_group compares sensitivity ATB duration <=13 with >13 days; outcome specifies the event and follow-up window. patients is the group size, known and unknown count assessable and unassessable outcomes, events is the number affected, and percent is 100 × events/known. Original matched pairs are retained"
+)
+```
+
+## Full cohort, 2017+
+
+Show the same outcomes among patients treated from 2017 onward.
+
+```{r}
+safety_2017 <- safety_table(data_2017)
+kableExtra::kable(
+  safety_2017,
+  digits = 1,
+  caption = "Safety outcomes after therapy completion, full cohort treated from 2017 onward. treatment_group compares sensitivity ATB duration <=13 with >13 days; outcome specifies the event and follow-up window. patients is the group size, known and unknown count assessable and unassessable outcomes, events is the number affected, and percent is 100 × events/known"
+)
+```
+
+## Matched cohort, 2017+
+
+Retain the existing matched pairs from 2017 onward.
+
+```{r}
+safety_matched_2017 <- safety_table(matched_data_2017)
+kableExtra::kable(
+  safety_matched_2017,
+  digits = 1,
+  caption = "Safety outcomes after therapy completion, primary matched cohort treated from 2017 onward. treatment_group compares sensitivity ATB duration <=13 with >13 days; outcome specifies the event and follow-up window. patients is the group size, known and unknown count assessable and unassessable outcomes, events is the number affected, and percent is 100 × events/known. This subset retains the all-years matches without rematching"
+)
+```
 
 # Secondary CCW analysis
 
@@ -2880,7 +3437,7 @@ ccw_risks <- function(endpoints) {
 
 ## Stopping by day 13
 
-Model stopping by day 13 using the baseline and BM–BR covariates
+Model stopping by day 13 using the baseline and BM–BR covariates. The reference calendar period is 2008–2016
 
 ```{r}
 m_stop_by13 <- glm(
@@ -2918,6 +3475,9 @@ kableExtra::kable(
 )
 sjPlot::tab_model(
   m_stop_by13,
+  pred.labels = unname(
+    my_labels_dict[names(coef(m_stop_by13))]
+  ),
   show.ci = 0.95,
   show.p = TRUE,
   show.se = FALSE,
@@ -2952,6 +3512,7 @@ ccw_endpoints_period <- ccw_period_data |>
   ) |>
   data.frame()
 ```
+
 Check weights and effective sample sizes
 
 ```{r}
@@ -3050,6 +3611,7 @@ bootstrap_ccw_period <- function() {
   ccw_risks(endpoints)
 }
 ```
+
 Run 500 patient bootstrap replicates, reusing the existing cache if present
 
 ```{r}
@@ -3100,6 +3662,7 @@ bootstrap_results_period <- purrr::map_dfr(
 ) |>
   data.frame()
 ```
+
 Show estimates and percentile 95% confidence intervals
 
 ```{r}
@@ -3220,7 +3783,7 @@ kableExtra::kable(
 
 ## Stopping by day 13
 
-Model stopping by day 13 using the baseline and BM–BR covariates
+Model stopping by day 13 using the baseline and BM–BR covariates. The reference calendar period in this cohort is 2017–2021
 
 ```{r}
 m_stop_by13 <- glm(
@@ -3259,6 +3822,9 @@ kableExtra::kable(
 )
 sjPlot::tab_model(
   m_stop_by13,
+  pred.labels = unname(
+    my_labels_dict[names(coef(m_stop_by13))]
+  ),
   show.ci = 0.95,
   show.p = TRUE,
   show.se = FALSE,
@@ -3448,8 +4014,8 @@ bootstrap_results_period <- purrr::map_dfr(
 ) |>
   data.frame()
 ```
-S
-how estimates and percentile 95% confidence intervals
+
+Show estimates and percentile 95% confidence intervals
 
 ```{r}
 bootstrap_limits_period <- bootstrap_results_period |>
