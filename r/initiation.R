@@ -654,7 +654,12 @@ if (!file.exists("data/data_analysis.rds")) {
       ATB_extension_CRP_dynamics,
       ATB_extension_other_reason,
       ATB_extension_urologic_procedure,
-      clostridium
+      clostridium,
+      ClostridiumDate,
+      ReadmissionDate_uti,
+      ReadmissionDate_other,
+      readmission_90d_uti,
+      readmission_90d_other
     ) |>
     data.frame()
 
@@ -662,6 +667,14 @@ if (!file.exists("data/data_analysis.rds")) {
     dplyr::filter(!is.na(CRP_entry)) |>
     dplyr::mutate(
       ID = as.character(ID),
+      initial_agent_identified = as.integer(
+        !is.na(InfAgent_1) &
+          !(str_to_lower(str_squish(InfAgent_1)) %in% c(
+            "", "0", "nezachyceno", "nezachycen", "nezachycena",
+            "nezjištěno", "nezjisteno", "negativní", "negativni",
+            "neg", "neg.", "negativni kultivace"
+          ))
+      ),
       days_after_therapy = as.numeric(Infection_to90D_day - EndDate_therapy),
       recurence_till_1M = as.integer(
         !is.na(days_after_therapy) &
@@ -692,9 +705,92 @@ if (!file.exists("data/data_analysis.rds")) {
     data.frame()
 
 
+
+  data_analysis <- data_analysis |>
+    dplyr::mutate(
+      clostridium_days_after_therapy = as.numeric(
+        ClostridiumDate - EndDate_therapy
+      ),
+      readmission_uti_days_after_therapy = as.numeric(
+        ReadmissionDate_uti - EndDate_therapy
+      ),
+      readmission_other_days_after_therapy = as.numeric(
+        ReadmissionDate_other - EndDate_therapy
+      ),
+      clostridium_30D = dplyr::case_when(
+        !is.na(clostridium_days_after_therapy) ~ as.integer(
+          clostridium_days_after_therapy > 0 &
+            clostridium_days_after_therapy <= 30
+        ),
+        clostridium == 0 ~ 0L,
+        TRUE ~ NA_integer_
+      ),
+      clostridium_90D = dplyr::case_when(
+        !is.na(clostridium_days_after_therapy) ~ as.integer(
+          clostridium_days_after_therapy > 0 &
+            clostridium_days_after_therapy <= 90
+        ),
+        clostridium == 0 ~ 0L,
+        TRUE ~ NA_integer_
+      ),
+      readmission_uti_30D = dplyr::case_when(
+        !is.na(readmission_uti_days_after_therapy) ~ as.integer(
+          readmission_uti_days_after_therapy > 0 &
+            readmission_uti_days_after_therapy <= 30
+        ),
+        readmission_90d_uti == 0 ~ 0L,
+        TRUE ~ NA_integer_
+      ),
+      readmission_uti_90D = dplyr::case_when(
+        !is.na(readmission_uti_days_after_therapy) ~ as.integer(
+          readmission_uti_days_after_therapy > 0 &
+            readmission_uti_days_after_therapy <= 90
+        ),
+        TRUE ~ readmission_90d_uti
+      ),
+      readmission_other_30D = dplyr::case_when(
+        !is.na(readmission_other_days_after_therapy) ~ as.integer(
+          readmission_other_days_after_therapy > 0 &
+            readmission_other_days_after_therapy <= 30
+        ),
+        readmission_90d_other == 0 ~ 0L,
+        TRUE ~ NA_integer_
+      ),
+      readmission_other_90D = dplyr::case_when(
+        !is.na(readmission_other_days_after_therapy) ~ as.integer(
+          readmission_other_days_after_therapy > 0 &
+            readmission_other_days_after_therapy <= 90
+        ),
+        TRUE ~ readmission_90d_other
+      ),
+      readmission_any_30D = dplyr::case_when(
+        readmission_uti_30D == 1 | readmission_other_30D == 1 ~ 1L,
+        readmission_uti_30D == 0 & readmission_other_30D == 0 ~ 0L,
+        TRUE ~ NA_integer_
+      ),
+      readmission_any_90D = dplyr::case_when(
+        readmission_uti_90D == 1 | readmission_other_90D == 1 ~ 1L,
+        readmission_uti_90D == 0 & readmission_other_90D == 0 ~ 0L,
+        TRUE ~ NA_integer_
+      )
+    ) |>
+    data.frame()
+
   write.csv(data_analysis, "data/data_analysis.csv", row.names = FALSE)
   saveRDS(data_analysis, "data/data_analysis.rds")
 }
 
 data_analysis <- readRDS("data/data_analysis.rds")
 
+
+required_safety <- c(
+  "ClostridiumDate", "ReadmissionDate_uti", "ReadmissionDate_other",
+  "readmission_90d_uti", "readmission_90d_other",
+  "initial_agent_identified", "clostridium_30D", "readmission_any_90D"
+)
+if (!all(required_safety %in% names(data_analysis))) {
+  stop(paste(
+    "The saved data_analysis.rds lacks the new safety columns.",
+    "Remove this cache manually, then rerun r/initiation.R."
+  ))
+}
